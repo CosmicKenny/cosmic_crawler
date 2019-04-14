@@ -81,7 +81,7 @@ const crawlAllURLs = async (url, browser) => {
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
     if (crawledURLs.length < 100) {
-      if (validateURLFormat(links[i]) && isInternalURL(links[i], entryUrl)) {
+      if (isValidURL(links[i]) && isInternalURL(links[i], entryUrl)) {
         /* check if {link} is crawled before */
         if (crawledURLs.indexOf(links[i]) > -1) {
           /* {link} is crawled before */
@@ -119,12 +119,15 @@ const getPathName = (url, basePath) => {
   return newUrl;
 }
 
-const validateURLFormat = (url) => {
+const isValidURL = (url) => {
+  /* URL should only start with http:// or https:// */
   const urlFormat = /^http(s)?:\/\//;
   return (url.match(urlFormat));
 };
 
 const isInternalURL = (url, domain) => {
+  /* URL should contain the domain name */
+  /* TO FIX: need to handle the case if the domain name is not at the beginning. e.g.: for www.abc.com?param=www.domain.com */
   return (url.includes(domain));
 }
 
