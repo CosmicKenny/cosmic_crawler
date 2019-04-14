@@ -75,7 +75,7 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`Number of links: ${links.length}`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    if (crawledURLs.length < 5000) {
+    // if (crawledURLs.length < 5000) {
       if (isValidURL(links[i]) && isInternalURL(links[i], entryUrl)) {
         /* check if {link} is crawled before */
         if (isCrawled(links[i])) {
@@ -84,7 +84,7 @@ const crawlAllURLs = async (url, browser) => {
         } else {
           console.log(`New URL: ${links[i]}`);
           /* Remove HASH from the URL */
-          crawledURLs.push(links[i].replace(/(\#[A-Za-z0-9]*)+\/?$/, ''));
+          crawledURLs.push(links[i]);
           console.log(`Crawled URLs: ${ JSON.stringify(crawledURLs)}`);
 
           /* queue crawling new URL */
@@ -98,9 +98,9 @@ const crawlAllURLs = async (url, browser) => {
         console.log(`Invalid URL: ${links[i]}`);
         invalidURLs.push(links[i]);
       }
-    } else {
-      break;
-    }
+    // } else {
+    //   break;
+    // }
   }
   console.log(`All links in ${url} are retrieved.`);
 
@@ -123,7 +123,7 @@ const _getPathName = (url, basePath) => {
 }
 
 const isCrawled = (url) => {
-  let cleanUrl = url.replace(/(\#[A-Za-z0-9]*)+\/?$/, '');
+  let cleanUrl = url;
   return (crawledURLs.indexOf(cleanUrl) > -1);
 };
 const isValidURL = (url) => {
