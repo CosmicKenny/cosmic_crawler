@@ -1,6 +1,7 @@
 // let Crawler = require('simplecrawler');
 const puppeteer = require('puppeteer');
 const { Parser } = require('json2csv');
+const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
 
@@ -70,25 +71,20 @@ const crawlAllURLs = async (url, browser) => {
   const links = await getAllLinks(page);
   console.log(`Got all links in ${url}`);
 
-  // console.log('Taking screenshot...');
-  // await takeScreenshot(page);
-
-  // console.log('Storing HTML');
-  // await saveHTML(page, url);
-
   console.log(`Checking each link in ${url}...`);
   console.log(`Number of links: ${links.length}`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    if (crawledURLs.length < 100) {
+    if (crawledURLs.length < 5000) {
       if (isValidURL(links[i]) && isInternalURL(links[i], entryUrl)) {
         /* check if {link} is crawled before */
-        if (crawledURLs.indexOf(links[i]) > -1) {
+        if (isCrawled(links[i])) {
           /* {link} is crawled before */
           console.log(`Crawled URL: ${links[i]}`);
         } else {
           console.log(`New URL: ${links[i]}`);
-          crawledURLs.push(links[i]);
+          /* Remove HASH from the URL */
+          crawledURLs.push(links[i].replace(/(\#[A-Za-z0-9]*)+\/?$/, ''));
           console.log(`Crawled URLs: ${ JSON.stringify(crawledURLs)}`);
 
           /* queue crawling new URL */
@@ -107,18 +103,29 @@ const crawlAllURLs = async (url, browser) => {
     }
   }
   console.log(`All links in ${url} are retrieved.`);
+
+  /* Do other fun things for this page here */
+  // console.log('Taking screenshot...');
+  // await takeScreenshot(page);
+
+  console.log(`Saving ${url} as static HTML`);
+  await saveHTML(page, url);
+
   await page.close();
   console.log('Page closed');
   console.log('====== End of page ======')
 };
 
-const getPathName = (url, basePath) => {
+const _getPathName = (url, basePath) => {
   let newUrl = url.replace(basePath, "");
-  let pathSections = newUrl.split('/');
-  console.log(`path name ${pathSections}`);
+  newUrl = newUrl.trim('/').replace(/\//g, '-');
   return newUrl;
 }
 
+const isCrawled = (url) => {
+  let cleanUrl = url.replace(/(\#[A-Za-z0-9]*)+\/?$/, '');
+  return (crawledURLs.indexOf(cleanUrl) > -1);
+};
 const isValidURL = (url) => {
   /* URL should only start with http:// or https:// */
   const urlFormat = /^http(s)?:\/\//;
@@ -134,10 +141,15 @@ const isInternalURL = (url, domain) => {
 const saveHTML = async (page, url) => {
   const pageContent = await page.content();
 
-  fs.writeFile('report/homepage.html', pageContent, (err, data) => {
+  const filePath = _getPathName(url, entryUrl);
+  console.log('filepath', filePath);
+
+  // const fileName = 'index.html';
+
+  fs.writeFile(path.join('html', filePath) + '-index.html', pageContent, (err, data) => {
     if (err) console.log(err);
 
-    console.log('HTML saved.');
+    console.log(`HTML saved as ${path.join('html', filePath)}-index.html`);
   });
 };
 
