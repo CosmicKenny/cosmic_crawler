@@ -8,10 +8,13 @@ const queue = require('queue');
 // let fields = ['url', 'type', 'loading_time', 'status'];
 // const parser = new Parser({ fields });
 let crawledURLs = [];
+let invalidURLs = [];
 
 let q = new queue({
   concurrency: 5
 });
+
+let globalIndex = 0;
 
 const entryUrl = 'https://www.areyouready.sg/';
 // const entryUrl = 'https://www.academyofsingaporeteachers.moe.gov.sg/';
@@ -39,7 +42,13 @@ const entryUrl = 'https://www.areyouready.sg/';
     fs.writeFile('report/crawledURLs.json', JSON.stringify(crawledURLs), (err, data) => {
       if (err) console.log(err);
 
-      console.log('Reported generated in report/links.json');
+      console.log('Crawled URLs saved in report/crawledURLs.json');
+    });
+
+    fs.writeFile('report/invalidURLs.json', JSON.stringify(invalidURLs), (err, data) => {
+      if (err) console.log(err);
+
+      console.log('Invalid URLs saved in report/invalidURLs.json');
     });
     await browser.close();
   });
@@ -48,22 +57,31 @@ const entryUrl = 'https://www.areyouready.sg/';
 
 const crawlAllURLs = async (url, browser) => {
   console.log('====== Start new page ======');
-  const page = await browser.newPage();
+  let page = await browser.newPage();
   console.log('New page created');
 
   console.log(`Loading ${url}...`);
-  await page.goto(url);
+  await page.goto(url).catch((err) => {
+    console.log(err);
+  });
   console.log(`Loaded`);
 
   console.log('Parsing all links in the page...');
   const links = await getAllLinks(page);
   console.log(`Got all links in ${url}`);
 
+  // console.log('Taking screenshot...');
+  // await takeScreenshot(page);
+
+  // console.log('Storing HTML');
+  // await saveHTML(page, url);
+
   console.log(`Checking each link in ${url}...`);
+  console.log(`Number of links: ${links.length}`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    if (crawledURLs.length < 20) {
-      if (validateURLFormat(links[i])) {
+    if (crawledURLs.length < 100) {
+      if (validateURLFormat(links[i]) && isInternalURL(links[i], entryUrl)) {
         /* check if {link} is crawled before */
         if (crawledURLs.indexOf(links[i]) > -1) {
           /* {link} is crawled before */
@@ -71,7 +89,7 @@ const crawlAllURLs = async (url, browser) => {
         } else {
           console.log(`New URL: ${links[i]}`);
           crawledURLs.push(links[i]);
-          // getPathName(links[i], entryUrl);
+          console.log(`Crawled URLs: ${ JSON.stringify(crawledURLs)}`);
 
           /* queue crawling new URL */
           q.push(async (cb) => {
@@ -82,6 +100,7 @@ const crawlAllURLs = async (url, browser) => {
         }
       } else {
         console.log(`Invalid URL: ${links[i]}`);
+        invalidURLs.push(links[i]);
       }
     } else {
       break;
@@ -101,13 +120,15 @@ const getPathName = (url, basePath) => {
 }
 
 const validateURLFormat = (url) => {
-  /* check URL format */
-
   const urlFormat = /^http(s)?:\/\//;
   return (url.match(urlFormat));
 };
 
-const saveHTML = async (page) => {
+const isInternalURL = (url, domain) => {
+  return (url.includes(domain));
+}
+
+const saveHTML = async (page, url) => {
   const pageContent = await page.content();
 
   fs.writeFile('report/homepage.html', pageContent, (err, data) => {
@@ -125,15 +146,16 @@ const takeScreenshot = async (page) => {
       deviceScaleFactor: window.devicePixelRatio
     };
   });
-  console.log(`Dimension of the page: ${dimensions}`);
+  console.log(`Dimension of the page: ${JSON.stringify(dimensions)}`);
 
   page.setViewport({
     width: dimensions.width,
     height: dimensions.height
   });
   await page.screenshot({
-    path: 'report/homepage.jpg'
+    path: 'report/' + globalIndex + '.jpg'
   });
+  globalIndex++;
   console.log('Screenshot is saved.');
 }
 
