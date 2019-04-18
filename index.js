@@ -10,6 +10,7 @@ const queue = require('queue');
 // const parser = new Parser({ fields });
 let crawledURLs = [];
 let invalidURLs = [];
+let hasIframeUrls = [];
 
 let q = new queue({
   concurrency: 5
@@ -17,7 +18,9 @@ let q = new queue({
 
 let globalIndex = 0;
 
-const entryUrl = 'https://www.areyouready.sg/';
+const domainName = 'https://www.smartnation.sg/';
+const entryUrl = 'https://www.smartnation.sg/what-is-smart-nation/initiatives/Urban-Living/myenv-app';
+// const entryUrl = 'https://www.areyouready.sg/';
 // const entryUrl = 'https://www.academyofsingaporeteachers.moe.gov.sg/';
 // const entryUrl = 'https://adelphi.digital/';
 
@@ -51,6 +54,12 @@ const entryUrl = 'https://www.areyouready.sg/';
 
       console.log('Invalid URLs saved in report/invalidURLs.json');
     });
+
+    fs.writeFile('report/hasIframe.json', JSON.stringify(hasIframeUrls), (err, data) => {
+      if (err) console.log(err);
+
+      console.log('URLs with iframe is saved in report/hasIframe.json');
+    });
     await browser.close();
   });
 
@@ -72,20 +81,17 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`Got all links in ${url}`);
 
   console.log(`Checking each link in ${url}...`);
-  console.log(`Number of links: ${links.length}`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    // if (crawledURLs.length < 5000) {
-      if (isValidURL(links[i]) && isInternalURL(links[i], entryUrl)) {
-        /* check if {link} is crawled before */
+    if (crawledURLs.length < 5) {
+      if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
+        /* check if {link[i]} is crawled before */
         if (isCrawled(links[i])) {
-          /* {link} is crawled before */
-          console.log(`Crawled URL: ${links[i]}`);
+          /* {links[i]} is crawled before */
         } else {
           console.log(`New URL: ${links[i]}`);
-          /* Remove HASH from the URL */
+          /* Remove # from the URL */
           crawledURLs.push(links[i]);
-          console.log(`Crawled URLs: ${ JSON.stringify(crawledURLs)}`);
 
           /* queue crawling new URL */
           q.push(async (cb) => {
@@ -95,12 +101,11 @@ const crawlAllURLs = async (url, browser) => {
           });
         }
       } else {
-        console.log(`Invalid URL: ${links[i]}`);
         invalidURLs.push(links[i]);
       }
-    // } else {
-    //   break;
-    // }
+    } else {
+      break;
+    }
   }
   console.log(`All links in ${url} are retrieved.`);
 
@@ -108,8 +113,14 @@ const crawlAllURLs = async (url, browser) => {
   // console.log('Taking screenshot...');
   // await takeScreenshot(page);
 
-  console.log(`Saving ${url} as static HTML`);
-  await saveHTML(page, url);
+  console.log(`Saving ${url} as static HTML...`);
+  let HTML = await saveHTML(page, url);
+
+  if (hasIframe(HTML)) {
+    console.log(`${url} has iframe`);
+
+    hasIframeUrls.push(url);
+  }
 
   await page.close();
   console.log('Page closed');
@@ -141,16 +152,29 @@ const isInternalURL = (url, domain) => {
 const saveHTML = async (page, url) => {
   const pageContent = await page.content();
 
-  const filePath = _getPathName(url, entryUrl);
+  /* TO FIX: save HTML into directories accordingly */
+  const filePath = _getPathName(url, domainName);
   console.log('filepath', filePath);
 
   // const fileName = 'index.html';
 
-  fs.writeFile(path.join('html', filePath) + '-index.html', pageContent, (err, data) => {
+  fs.writeFile(path.join('report/html', filePath) + '-index.html', pageContent, (err, data) => {
     if (err) console.log(err);
 
     console.log(`HTML saved as ${path.join('html', filePath)}-index.html`);
   });
+
+  return pageContent;
+};
+
+const hasIframe = (html) => {
+  /* find if the html has iframe which:
+    - NOT <iframe sandbox=... (from WOGAA)
+    - NOT <iframe id="stSegmentFrame"... (from addthis)
+   */
+  let regex = /<iframe\s(?!sandbox)(?!id="stSegmentFrame")/g;
+
+  return regex.test(html);
 };
 
 const takeScreenshot = async (page) => {
