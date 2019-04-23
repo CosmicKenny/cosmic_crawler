@@ -1,4 +1,4 @@
-// let Crawler = require('simplecrawler');
+const chalk = require('chalk');
 const puppeteer = require('puppeteer');
 const { Parser } = require('json2csv');
 const path = require('path');
@@ -22,89 +22,88 @@ let globalIndex = 0;
 
 const resultsFolder = 'reports';
 
-const domainName = 'https://www.smartnation.sg/';
-const entryUrl = 'https://www.smartnation.sg/';
+// const domainName = 'www.smartnation.sg';
+// const entryUrl = 'https://www.smartnation.sg/';
+const domainName = 'adelphi.digital';
+const entryUrl = 'https://adelphi.digital/';
 
 /* setup crawler */
 (async() => {
 
   const browser = await puppeteer.launch();
-  console.log('Browser launched');
+  console.log(chalk.green('Browser launched'));
 
   crawledURLs.push(entryUrl);
   await crawlAllURLs(entryUrl, browser);
 
-  console.log('start processing the queue');
   q.start(async (err) => {
     if (err) console.log(`Queue start error: ${err}`);
 
-    console.log(`Completed: URLs crawled ${crawledURLs}`);
-    console.log('Generating report...');
+    console.log(chalk.green('Generating report...'));
 
     fs.writeFile(`${resultsFolder}/crawledURLs.json`, JSON.stringify(crawledURLs), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`Crawled URLs saved in ${resultsFolder}/crawledURLs.json`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
     });
 
     fs.writeFile(`${resultsFolder}/invalidURLs.json`, JSON.stringify(invalidURLs), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`Invalid URLs saved in ${resultsFolder}/invalidURLs.json`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/invalidURLs.json`)} is saved.`);
     });
 
     fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`${resultsFolder}/pagesWithExternalIframes.json is saved.`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
     });
 
     fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`${resultsFolder}/pagesWithExternalImages.json is saved.`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
     });
 
     fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`${resultsFolder}/pagesWithExternalVideos.json is saved.`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
     });
 
     await browser.close();
+    console.log(chalk.green('Browser closed'));
   });
 
 })();
 
 const crawlAllURLs = async (url, browser) => {
-  console.log('====== Start new page ======');
   let page = await browser.newPage();
 
-  console.log(`New page created, loading ${url}`);
+  console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
   await page.goto(url).catch((err) => {
     console.log(err);
   });
-  console.log(`Loaded ${url}`);
+  console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
 
-  console.log(`Parsing all links in the ${url}...`);
+  console.log(`${chalk.cyan('Parsing all links in:')} ${url}...`);
   const links = await getAllLinks(page);
-  console.log(`Got all links in ${url}`);
+  console.log(`${chalk.cyan('Got all links in:')} ${url}`);
 
-  console.log(`Checking each link in ${url}...`);
+  console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    // if (crawledURLs.length < 5) {
+    if (crawledURLs.length < 5) {
       if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
         /* check if {link[i]} is crawled before */
         if (isCrawled(links[i])) {
           /* {links[i]} is crawled before */
         } else {
-          console.log(`New URL: ${links[i]}`);
+          console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
           crawledURLs.push(links[i]);
 
           /* queue crawling new URL */
           q.push(async (cb) => {
-            console.log(`Start crawling ${links[i]}...`);
             await crawlAllURLs(links[i], browser);
             cb();
           });
@@ -112,27 +111,32 @@ const crawlAllURLs = async (url, browser) => {
       } else {
         invalidURLs.push(links[i]);
       }
-    // } else {
-    //   break;
-    // }
+    } else {
+      break;
+    }
   }
-  console.log(`All links in ${url} are retrieved.`);
+  console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
 
   /* Do other fun things for this page here */
   // console.log('Taking screenshot...');
   // await takeScreenshot(page);
 
   /* retrieve the HTML of the rendered page */
-  console.log(`Getting HTML of the page ${url}...`);
+  console.log(`${chalk.green('Getting HTML of the page:')} ${url}...`);
   let HTML = await page.content();
 
+  console.log(`${chalk.green('Finding iframes in:')} ${url}`)
   await getPagesWithExternalIframes(page, url, domainName);
+  console.log(`${chalk.green('All iframes found in:')} ${url}`);
+  console.log(`${chalk.green('Finding images in:')} ${url}`)
   await getPagesWithExternalImages(page, url, domainName);
+  console.log(`${chalk.green('All images found in:')} ${url}`);
+  console.log(`${chalk.green('Finding videos in:')} ${url}`)
   await getPagesWithExternalVideos(page, url, domainName);
+  console.log(`${chalk.green('All videos found in:')} ${url}`);
 
   await page.close();
-  console.log(`Page ${url} closed`);
-  console.log('====== End of page ======');
+  console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
 };
 
 const _getPathName = (url, basePath) => {
@@ -165,8 +169,6 @@ const saveHTML = async (page, url) => {
   const filePath = _getPathName(url, domainName);
   console.log('filepath', filePath);
 
-  // const fileName = 'index.html';
-
   fs.writeFile(path.join(`${resultsFolder}`, 'html', filePath) + '-index.html', pageContent, (err, data) => {
     if (err) console.log(err);
 
@@ -190,8 +192,6 @@ const getPagesWithExternalIframes = async (page, url, domain) => {
   let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
 
   if ($iframes.length > 0) {
-    console.log(`${url} has iframe`);
-
     let temp = [];
 
     const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
