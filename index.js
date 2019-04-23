@@ -1,4 +1,10 @@
 const chalk = require('chalk');
+/* color convention:
+  - magentaBright: page level status
+  - green: browser status
+  - blueBright: link or file path
+  - bgMagenta: custom plugin
+ */
 const puppeteer = require('puppeteer');
 const { Parser } = require('json2csv');
 const path = require('path');
@@ -100,10 +106,10 @@ const crawlAllURLs = async (url, browser) => {
           /* {links[i]} is crawled before */
         } else {
           console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
-          crawledURLs.push(links[i]);
+          crawledURLs.push(links
 
-          /* queue crawling new URL */
-          q.push(async (cb) => {
+          /* queue crawling new
+          q.push(async (cb) =>
             await crawlAllURLs(links[i], browser);
             cb();
           });
@@ -122,18 +128,18 @@ const crawlAllURLs = async (url, browser) => {
   // await takeScreenshot(page);
 
   /* retrieve the HTML of the rendered page */
-  console.log(`${chalk.green('Getting HTML of the page:')} ${url}...`);
+  console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
   let HTML = await page.content();
 
-  console.log(`${chalk.green('Finding iframes in:')} ${url}`)
+  console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
   await getPagesWithExternalIframes(page, url, domainName);
-  console.log(`${chalk.green('All iframes found in:')} ${url}`);
-  console.log(`${chalk.green('Finding images in:')} ${url}`)
+  console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+  console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
   await getPagesWithExternalImages(page, url, domainName);
-  console.log(`${chalk.green('All images found in:')} ${url}`);
-  console.log(`${chalk.green('Finding videos in:')} ${url}`)
+  console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+  console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
   await getPagesWithExternalVideos(page, url, domainName);
-  console.log(`${chalk.green('All videos found in:')} ${url}`);
+  console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
 
   await page.close();
   console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
