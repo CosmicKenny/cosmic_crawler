@@ -10,7 +10,9 @@ const queue = require('queue');
 // const parser = new Parser({ fields });
 let crawledURLs = [];
 let invalidURLs = [];
-let hasIframeUrls = [];
+let pagesWithExternalIframes = [];
+let pagesWithExternalImages = [];
+let pagesWithExternalVideos = [];
 
 let q = new queue({
   concurrency: 5
@@ -51,11 +53,24 @@ const entryUrl = 'https://www.smartnation.sg/';
       console.log(`Invalid URLs saved in ${resultsFolder}/invalidURLs.json`);
     });
 
-    fs.writeFile(`${resultsFolder}/hasIframe.json`, JSON.stringify(hasIframeUrls), (err, data) => {
+    fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`URLs with iframe is saved in ${resultsFolder}/hasIframe.json`);
+      console.log(`${resultsFolder}/pagesWithExternalIframes.json is saved.`);
     });
+
+    fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${resultsFolder}/pagesWithExternalImages.json is saved.`);
+    });
+
+    fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${resultsFolder}/pagesWithExternalVideos.json is saved.`);
+    });
+
     await browser.close();
   });
 
@@ -111,23 +126,9 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`Getting HTML of the page ${url}...`);
   let HTML = await page.content();
 
-  /* get all iframes */
-  let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
-
-  if ($iframes.length > 0) {
-    console.log(`${url} has iframe`);
-
-    let obj = {
-      url: url,
-      iframes: []
-    };
-
-    const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
-    for (let j = 0; j < iframes.length; j++) {
-      obj.iframes.push(iframes[j]);
-    }
-    hasIframeUrls.push(obj);
-  }
+  await getPagesWithExternalIframes(page, url, domainName);
+  await getPagesWithExternalImages(page, url, domainName);
+  await getPagesWithExternalVideos(page, url, domainName);
 
   await page.close();
   console.log(`Page ${url} closed`);
@@ -184,6 +185,80 @@ const saveHTML = async (page, url) => {
 
 //   return regex.test(html);
 // };
+
+const getPagesWithExternalIframes = async (page, url, domain) => {
+  let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
+
+  if ($iframes.length > 0) {
+    console.log(`${url} has iframe`);
+
+    let temp = [];
+
+    const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
+    for (let i = 0; i < iframes.length; i++) {
+      if (isExternalSource(iframes[i], domain)) {
+        temp.push(iframes[i]);
+      }
+    }
+
+    if (temp.length > 0) {
+      let obj = {
+        url: url,
+        iframes: temp
+      };
+
+      pagesWithExternalIframes.push(obj);
+    }
+  }
+}
+
+const getPagesWithExternalImages = async (page, url, domain) => {
+  let $images = await page.$$('img');
+
+  if($images.length > 0) {
+    let temp = [];
+
+    const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
+    for (let i = 0; i < images.length; i++) {
+      if (isExternalSource(images[i], domain)) {
+        temp.push(images[i]);
+      }
+    }
+
+    if (temp.length > 0) {
+      let obj = {
+        url: url,
+        images: temp
+      }
+
+      pagesWithExternalImages.push(obj);
+    }
+  }
+}
+
+const getPagesWithExternalVideos = async (page, url, domain) => {
+  let $videos = await page.$$('video');
+
+  if ($videos.length > 0) {
+    let temp = [];
+
+    const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
+    for (let i = 0; i < videos.length; i++) {
+      if (isExternalSource(videos[i], domain)) {
+        temp.push(videos[i]);
+      }
+    }
+
+    if (temp.length > 0) {
+      let obj = {
+        url: url,
+        videos: temp
+      }
+
+      pagesWithExternalVideos.push(obj);
+    }
+  }
+}
 
 const isExternalSource = (url, domain) => {
   return (!url.includes(domain));
