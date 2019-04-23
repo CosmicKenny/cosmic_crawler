@@ -99,17 +99,17 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    if (crawledURLs.length < 5) {
+    // if (crawledURLs.length < 5) {
       if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
         /* check if {link[i]} is crawled before */
         if (isCrawled(links[i])) {
           /* {links[i]} is crawled before */
         } else {
           console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
-          crawledURLs.push(links
+          crawledURLs.push(links[i]);
 
-          /* queue crawling new
-          q.push(async (cb) =>
+          /* queue crawling new URL*/
+          q.push(async (cb) => {
             await crawlAllURLs(links[i], browser);
             cb();
           });
@@ -117,9 +117,9 @@ const crawlAllURLs = async (url, browser) => {
       } else {
         invalidURLs.push(links[i]);
       }
-    } else {
-      break;
-    }
+    // } else {
+    //   break;
+    // }
   }
   console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
 
