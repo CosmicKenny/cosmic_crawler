@@ -111,7 +111,10 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`Getting HTML of the page ${url}...`);
   let HTML = await page.content();
 
-  if (hasIframe(HTML)) {
+  /* get all iframes */
+  let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
+
+  if ($iframes.length > 0) {
     console.log(`${url} has iframe`);
 
     let obj = {
@@ -172,15 +175,15 @@ const saveHTML = async (page, url) => {
   return pageContent;
 };
 
-const hasIframe = (html) => {
-  /* find if the html has iframe which:
-    - NOT <iframe sandbox=... (from WOGAA)
-    - NOT <iframe id="stSegmentFrame"... (from addthis)
-   */
-  let regex = /<iframe\s(?!sandbox)(?!id="stSegmentFrame")(?!id="stLframe")/g;
+// const hasIframe = (html) => {
+//   /* find if the html has iframe which:
+//     - NOT <iframe sandbox=... (from WOGAA)
+//     - NOT <iframe id="stSegmentFrame"... (from addthis)
+//    */
+//   let regex = /<iframe\s(?!sandbox)(?!id="stSegmentFrame")(?!id="stLframe")/g;
 
-  return regex.test(html);
-};
+//   return regex.test(html);
+// };
 
 const isExternalSource = (url, domain) => {
   return (!url.includes(domain));
