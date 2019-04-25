@@ -6,14 +6,11 @@ const chalk = require('chalk');
   - bgMagenta: custom plugin
  */
 const puppeteer = require('puppeteer');
-const { Parser } = require('json2csv');
 const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
+const jsonToCsv = require('./jsonToCsv.js');
 
-/* prepare CSV format */
-// let fields = ['url', 'type', 'loading_time', 'status'];
-// const parser = new Parser({ fields });
 let crawledURLs = [];
 let invalidURLs = [];
 let pagesWithExternalIframes = [];
@@ -79,6 +76,8 @@ const entryUrl = 'https://adelphi.digital/';
 
     await browser.close();
     console.log(chalk.green('Browser closed'));
+
+    jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
   });
 
 })();
@@ -99,7 +98,7 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    // if (crawledURLs.length < 5) {
+    // if (crawledURLs.length < 15) {
       if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
         /* check if {link[i]} is crawled before */
         if (isCrawled(links[i])) {
