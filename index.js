@@ -98,30 +98,31 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    // if (crawledURLs.length < 15) {
-      if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
-        /* check if {link[i]} is crawled before */
-        if (isCrawled(links[i])) {
-          /* {links[i]} is crawled before */
-        } else {
-          console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
-          crawledURLs.push(links[i]);
+    if (crawledURLs.length >= 15) {
+      break;
+    }
 
-          /* queue crawling new URL*/
-          q.push(async (cb) => {
-            await crawlAllURLs(links[i], browser);
-            cb();
-          });
-        }
+    if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
+      /* check if {link[i]} is crawled before */
+      if (isCrawled(links[i])) {
+        /* {links[i]} is crawled before */
       } else {
-        invalidURLs.push(links[i]);
+        console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
+        crawledURLs.push(links[i]);
+
+        /* queue crawling new URL*/
+        q.push(async (cb) => {
+          await crawlAllURLs(links[i], browser);
+          cb();
+        });
       }
-    // } else {
-    //   break;
-    // }
+    } else {
+      invalidURLs.push(links[i]);
+    }
   }
   console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
 
+  // =====================================================
   /* Do other fun things for this page here */
   // console.log('Taking screenshot...');
   // await takeScreenshot(page);

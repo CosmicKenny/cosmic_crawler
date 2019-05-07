@@ -1,5 +1,5 @@
-const jsonToCsv = require('./jsonToCsv.js');
+const wcagTest = require('./wcagTester.js');
 
 const resultsFolder = 'reports';
 
-jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+wcagTester.wcagTester('https://adelphi.digital', resultsFolder);
