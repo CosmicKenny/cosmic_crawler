@@ -111,9 +111,9 @@ const crawlAllURLsInAjax = async (url, page, browser) => {
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
-    if (crawledURLs.length >= 10) {
-      break;
-    }
+    // if (crawledURLs.length >= 10) {
+    //   break;
+    // }
     /* validate URL format */
     if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
       /* check if {link[i]} is crawled before */
@@ -141,14 +141,11 @@ const crawlAllURLsInAjax = async (url, page, browser) => {
   testRun++;
   console.log(`Test run ${testRun}`);
 
-  const isButtonDisabled = await page.$eval('#wsContentListTable_next', node => node.classList.contains('next'));
-  if (isButtonDisabled) {
-    console.log('disabled')
+  /* Checked if next button is disabled */
+  const isNextButtonDisabled = await page.$eval('#wsContentListTable_next', node => node.classList.contains('disabled'));
+  if (isNextButtonDisabled) {
     return;
   }
-
-  console.log('button can be clicked');
-  return;
 
   const nextLink = await page.waitForSelector('#wsContentListTable_next a');
   await nextLink.click();
@@ -177,9 +174,9 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
-    if (crawledURLs.length >= 10) {
-      break;
-    }
+    // if (crawledURLs.length >= 10) {
+    //   break;
+    // }
     /* validate URL format */
     if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
       /* check if {link[i]} is crawled before */
