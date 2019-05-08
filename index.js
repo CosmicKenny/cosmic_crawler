@@ -31,30 +31,31 @@ const entryUrl = 'https://www.population.sg/articles';
 // const domainName = 'adelphi.digital';
 // const entryUrl = 'https://adelphi.digital/';
 
-let browser;
-let page;
-
 /* setup crawler */
 (async() => {
 
-  browser = await puppeteer.launch();
+  const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
   /* sameUrlCrawling = true when there is no different page URL for different pages in listing page */
   const sameUrlCrawling = true;
 
   if (sameUrlCrawling) {
-    page = await browser.newPage();
+    const page = await browser.newPage();
     console.log(`${chalk.magentaBright('New page created:')} loading ${entryUrl}...`);
     await page.goto(entryUrl).catch((err) => {
       console.log(err);
     });
     console.log(`${chalk.magentaBright('URL loaded:')} ${entryUrl}`);
+
     crawledURLs.push(entryUrl);
-    await crawlAllURLsInAjax(entryUrl);
+    await crawlAllURLsInAjax(entryUrl, page, browser);
+
+    await page.close();
+    console.log(`${chalk.magentaBright('Page closed:')} ${entryUrl}`);
   } else {
     crawledURLs.push(entryUrl);
-    await crawlAllURLs(entryUrl);
+    await crawlAllURLs(entryUrl, browser);
   }
 
   q.start(async (err) => {
@@ -100,7 +101,7 @@ let page;
 
 })();
 
-const crawlAllURLsInAjax = async (url) => {
+const crawlAllURLsInAjax = async (url, page, browser) => {
   let links;
   console.log(`${chalk.magentaBright('Waiting for links to be available...')}`);
   await page.waitForSelector('#wsContentListTable a');
@@ -110,6 +111,9 @@ const crawlAllURLsInAjax = async (url) => {
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
+    if (crawledURLs.length >= 10) {
+      break;
+    }
     /* validate URL format */
     if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
       /* check if {link[i]} is crawled before */
@@ -118,10 +122,9 @@ const crawlAllURLsInAjax = async (url) => {
       } else {
         console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
         crawledURLs.push(links[i]);
-
         /* queue crawling new URL*/
         q.push(async (cb) => {
-          await crawlAllURLs(links[i]);
+          await crawlAllURLs(links[i], browser);
           cb();
         });
       }
@@ -138,8 +141,14 @@ const crawlAllURLsInAjax = async (url) => {
   testRun++;
   console.log(`Test run ${testRun}`);
 
-  const isButtonDisabled = await page.$eval('#wsContentListTable_next', node => node.classList.contains('disabled'));
-  if (isButtonDisabled) { return; }
+  const isButtonDisabled = await page.$eval('#wsContentListTable_next', node => node.classList.contains('next'));
+  if (isButtonDisabled) {
+    console.log('disabled')
+    return;
+  }
+
+  console.log('button can be clicked');
+  return;
 
   const nextLink = await page.waitForSelector('#wsContentListTable_next a');
   await nextLink.click();
@@ -148,12 +157,13 @@ const crawlAllURLsInAjax = async (url) => {
     hidden: true
   });
   console.log('loading gif hidden');
-  await crawlAllURLsInAjax(url);
+  await crawlAllURLsInAjax(url, page, browser);
 }
 
-const crawlAllURLs = async (url) => {
+const crawlAllURLs = async (url, browser) => {
   let links;
-  page = await browser.newPage();
+
+  const page = await browser.newPage();
 
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
   await page.goto(url).catch((err) => {
@@ -167,10 +177,9 @@ const crawlAllURLs = async (url) => {
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
-    // if (crawlAllURLs.length >= 5) {
-    //   break;
-    // }
-
+    if (crawledURLs.length >= 10) {
+      break;
+    }
     /* validate URL format */
     if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
       /* check if {link[i]} is crawled before */
@@ -179,10 +188,9 @@ const crawlAllURLs = async (url) => {
       } else {
         console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
         crawledURLs.push(links[i]);
-
         /* queue crawling new URL*/
         q.push(async (cb) => {
-          await crawlAllURLs(links[i]);
+          await crawlAllURLs(links[i], browser);
           cb();
         });
       }
