@@ -22,22 +22,38 @@ let q = new queue({
 });
 
 let globalIndex = 0;
+let testRun = 0;
 
 const resultsFolder = 'reports';
 
-// const domainName = 'www.smartnation.sg';
-// const entryUrl = 'https://www.smartnation.sg/';
-const domainName = 'adelphi.digital';
-const entryUrl = 'https://adelphi.digital/';
+const domainName = 'www.population.sg';
+const entryUrl = 'https://www.population.sg/articles';
+// const domainName = 'adelphi.digital';
+// const entryUrl = 'https://adelphi.digital/';
+
+let browser;
+let page;
 
 /* setup crawler */
 (async() => {
 
-  const browser = await puppeteer.launch();
+  browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
+  /* sameUrlCrawling = true when there is no different page URL for different pages in listing page */
+  sameUrlCrawling = true;
+
+  if (sameUrlCrawling) {
+    page = await browser.newPage();
+    console.log(`${chalk.magentaBright('New page created:')} loading ${entryUrl}...`);
+    await page.goto(entryUrl).catch((err) => {
+      console.log(err);
+    });
+    console.log(`${chalk.magentaBright('URL loaded:')} ${entryUrl}`);
+  }
+
   crawledURLs.push(entryUrl);
-  await crawlAllURLs(entryUrl, browser);
+  await crawlAllURLs(entryUrl, sameUrlCrawling);
 
   q.start(async (err) => {
     if (err) console.log(`Queue start error: ${err}`);
@@ -82,53 +98,82 @@ const entryUrl = 'https://adelphi.digital/';
 
 })();
 
-const crawlAllURLs = async (url, browser) => {
-  let page = await browser.newPage();
+const crawlAllURLs = async (url, sameUrl = false) => {
+  let links;
+  if (sameUrl) {
+    console.log(`${chalk.magentaBright('Waiting for links to be available...')}`);
+    await page.waitForSelector('#wsContentListTable a');
+    console.log(`${chalk.magentaBright('Links are loaded. Parsing all links...')}`);
+    links = await getAllLinks(page, '#wsContentListTable');
+    console.log('links retrieved:', links);
 
-  console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
-  await page.goto(url).catch((err) => {
-    console.log(err);
-  });
-  console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
+  } else {
+    page = await browser.newPage();
 
-  console.log(`${chalk.cyan('Parsing all links in:')} ${url}...`);
-  const links = await getAllLinks(page);
+    console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
+    await page.goto(url).catch((err) => {
+      console.log(err);
+    });
+    console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
+
+    console.log(`${chalk.cyan('Parsing all links in:')} ${url}...`);
+    links = await getAllLinks(page);
+  }
+
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
-
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    // if (crawledURLs.length < 15) {
-      if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
-        /* check if {link[i]} is crawled before */
-        if (isCrawled(links[i])) {
-          /* {links[i]} is crawled before */
-        } else {
-          console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
-          crawledURLs.push(links[i]);
+    // if (crawledURLs.length >= 50) {
+    //   break;
+    // }
 
+    if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
+      /* check if {link[i]} is crawled before */
+      if (isCrawled(links[i])) {
+        /* {links[i]} is crawled before */
+      } else {
+        console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
+        crawledURLs.push(links[i]);
+
+        if (!sameUrl) {
           /* queue crawling new URL*/
           q.push(async (cb) => {
-            await crawlAllURLs(links[i], browser);
+            await crawlAllURLs(links[i]);
             cb();
           });
         }
-      } else {
-        invalidURLs.push(links[i]);
       }
-    // } else {
-    //   break;
-    // }
+    } else {
+      invalidURLs.push(links[i]);
+    }
   }
   console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
+
+  if (testRun >= 50) {
+    return;
+  }
+
+  if (sameUrl) {
+    const nextLink = await page.waitForSelector('#wsContentListTable_next a');
+    await nextLink.click();
+    console.log('next link clicked');
+    console.log('loading gif appear');
+    await page.waitForSelector('#wsContentListTable_processing', {
+      hidden: true
+    });
+    console.log('loading gif hidden');
+    testRun++;
+    await crawlAllURLs(url, sameUrl);
+  }
 
   /* Do other fun things for this page here */
   // console.log('Taking screenshot...');
   // await takeScreenshot(page);
 
   /* retrieve the HTML of the rendered page */
-  console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
-  let HTML = await page.content();
+  // console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
+  // let HTML = await page.content();
 
   console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
   await getPagesWithExternalIframes(page, url, domainName);
@@ -140,8 +185,11 @@ const crawlAllURLs = async (url, browser) => {
   await getPagesWithExternalVideos(page, url, domainName);
   console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
 
-  await page.close();
-  console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
+
+  if (!sameUrl) {
+    await page.close();
+    console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
+  }
 };
 
 const _getPathName = (url, basePath) => {
@@ -290,8 +338,8 @@ const takeScreenshot = async (page) => {
   console.log('Screenshot is saved.');
 }
 
-const getAllLinks = async (page) => {
-  const links = await page.$$eval('a', as => as.map(a => a.href));
+const getAllLinks = async (page, wrapper = '') => {
+  const links = await page.$$eval(`${wrapper} a`, as => as.map(a => a.href));
 
   return links;
 }
