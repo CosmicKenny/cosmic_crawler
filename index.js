@@ -42,6 +42,10 @@ const entryUrl = 'https://www.population.sg/articles';
 
   if (sameUrlCrawling) {
     const page = await browser.newPage();
+    await page.setViewport({
+      width: 1366,
+      height: 768
+    });
     console.log(`${chalk.magentaBright('New page created:')} loading ${entryUrl}...`);
     await page.goto(entryUrl).catch((err) => {
       console.log(err);
@@ -143,7 +147,10 @@ const crawlAllURLsInAjax = async (url, page, browser) => {
 
   /* Checked if next button is disabled */
   const isNextButtonDisabled = await page.$eval('#wsContentListTable_next', node => node.classList.contains('disabled'));
-  if (isNextButtonDisabled) {
+  await page.screenshot({
+    path: `reports/${testRun}.jpg`
+  });
+  if (isNextButtonDisabled || testRun >= 60) {
     return;
   }
 
