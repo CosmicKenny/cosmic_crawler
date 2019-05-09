@@ -1,6 +1,16 @@
-const wcagTest = require('./wcagTester.js');
+const validator = require('./htmlValidate.js');
 
-const resultsFolder = 'reports/wcag';
+const resultsFolder = 'reports/html-validate';
 
-wcagTest.wcagTester('https://adelphi.digital', resultsFolder, '1.html', '1.jpg');
-Kenny
+const html = `
+<!doctype html>
+<html>
+<head>
+<title>Test</title>
+</head>
+<body>
+</body>
+</html>
+`
+
+validator.htmlValidate(html, resultsFolder, '1.json');

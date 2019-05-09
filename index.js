@@ -10,6 +10,8 @@ const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
 const jsonToCsv = require('./jsonToCsv.js');
+const wcagTester = require('./wcagTester.js');
+const htmlValidator = require('./htmlValidate');
 
 let crawledURLs = [];
 let invalidURLs = [];
@@ -141,6 +143,15 @@ const crawlAllURLs = async (url, browser) => {
   await getPagesWithExternalVideos(page, url, domainName);
   console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
 
+  let index = crawledURLs.indexOf(url);
+  console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
+  await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}.html`, `${index}.jpg`);
+  console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
+
+  console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
+  await htmlValidator.htmlValidate(HTML, `${resultsFolder}/html-validate`, `${index}.json`);
+  console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
+
   await page.close();
   console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
 };
@@ -152,7 +163,8 @@ const _getPathName = (url, basePath) => {
 }
 
 const isCrawled = (url) => {
-  let cleanUrl = url;
+  /* remove # from last character of {url} */
+  let cleanUrl = (url.slice(-1) == '#') ? url.slice(0, url.length - 1) : url;
   return (crawledURLs.indexOf(cleanUrl) > -1);
 };
 

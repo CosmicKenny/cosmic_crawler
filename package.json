@@ -16,6 +16,7 @@
     "chalk": "^2.4.2",
     "crawler": "^1.2.0",
     "fs": "0.0.1-security",
+    "html-validator": "^4.0.2",
     "https": "^1.0.0",
     "json2csv": "^4.4.1",
     "pa11y": "^5.1.0",

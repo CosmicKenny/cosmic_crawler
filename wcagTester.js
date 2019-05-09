@@ -3,8 +3,12 @@ const pa11y = require('pa11y');
 const htmlReporter = require('pa11y-reporter-html');
 const fs = require('fs');
 
-
-const wcagTester = async (url, storage, reportName, screenshotName) => {
+const test = async (url, storage, reportName, screenshotName) => {
+  /*
+  - use Pa11y to load the {url} to scan for WCAG,
+  - save the WCAG report in {storage}/{reportName}
+  - screenshot the page in {storage}/{screenshotName}
+  */
   const results = await pa11y(url, {
     wait: 1000,
     screenCapture: `${storage}/${screenshotName}`
@@ -18,4 +22,4 @@ const wcagTester = async (url, storage, reportName, screenshotName) => {
   });
 };
 
-module.exports.wcagTester = wcagTester;
+module.exports.wcagTester = test;
