@@ -100,9 +100,9 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
     /* validate URL format */
-    if (crawledURLs.length >= 15) {
-      break;
-    }
+    // if (crawledURLs.length >= 15) {
+    //   break;
+    // }
 
     if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
       /* check if {link[i]} is crawled before */
@@ -149,7 +149,7 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
 
   console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
-  await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}.html`);
+  await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}`);
   console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
 
   await page.close();

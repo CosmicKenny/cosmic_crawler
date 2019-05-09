@@ -7,14 +7,22 @@ const validate = async (url, html, storage, reportName) => {
     data: html
   });
 
+  /* Save JSON format report */
+  fs.writeFile(`${storage}/${reportName}.json`, results, (err, data) => {
+    if (err) console.log(err);
+
+    console.log(`${chalk.underline.blueBright(`${storage}/${reportName}.json`)} is saved.`);
+  });
+
   let resultsObj = JSON.parse(results);
 
   let generatedReport = generateHtmlReport(url, resultsObj.messages);
 
-  fs.writeFile(`${storage}/${reportName}`, generatedReport, (err, data) => {
+  /* Save HTML format report */
+  fs.writeFile(`${storage}/${reportName}.html`, generatedReport, (err, data) => {
     if (err) console.log(err);
 
-    console.log(`${chalk.underline.blueBright(`${storage}/${reportName}`)} is saved.`);
+    console.log(`${chalk.underline.blueBright(`${storage}/${reportName}.html`)} is saved.`);
   });
 };
 
@@ -33,6 +41,23 @@ let generateHtmlReport = (url, messages) => {
 
 let errorHtml = (msg) => {
   let { type, lastLine, lastColumn, firstColumn, message, extract} = msg;
+
+  let htmlEscapes = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#x27;',
+    '/': '&#x2F;'
+  };
+  message = message.replace(/[&<>"'\/]/g, (match) => {
+    return htmlEscapes[match];
+  });
+  message = message.replace(/\“/g, '<code>');
+  message = message.replace(/\”/g, '</code>');
+  extract = extract.replace(/[&<>"'\/]/g, (match) => {
+    return htmlEscapes[match];
+  });
   let html = `
   <li class="result ${(msg.subType) ? 'warning' : 'error'}">
     <h2>${type.toUpperCase()}${(msg.subType) ? '-' + msg.subType.toUpperCase() : ''}: ${message}</h2>
