@@ -9,15 +9,18 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
+const http = require('http');
 const jsonToCsv = require('./jsonToCsv.js');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 let crawledURLs = [];
+let crawledPages = [];
 let invalidURLs = [];
 let pagesWithExternalIframes = [];
 let pagesWithExternalImages = [];
 let pagesWithExternalVideos = [];
+let brokenURLs = [];
 
 let q = new queue({
   concurrency: 5
@@ -27,8 +30,8 @@ let globalIndex = 0;
 
 const resultsFolder = 'reports';
 
-const domainName = 'www.areyouready.sg';
-const entryUrl = 'https://www.areyouready.sg/';
+const domainName = 'www.cpf.gov.sg';
+const entryUrl = 'https://www.cpf.gov.sg/';
 // const domainName = 'adelphi.digital';
 // const entryUrl = 'https://adelphi.digital/';
 
@@ -50,6 +53,12 @@ const entryUrl = 'https://www.areyouready.sg/';
       if (err) console.log(err);
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
+    });
+
+    fs.writeFile(`${resultsFolder}/crawledPages.json`, JSON.stringify(crawledPages), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledPages.json`)} is saved.`);
     });
 
     fs.writeFile(`${resultsFolder}/invalidURLs.json`, JSON.stringify(invalidURLs), (err, data) => {
@@ -74,6 +83,12 @@ const entryUrl = 'https://www.areyouready.sg/';
       if (err) console.log(err);
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
+    });
+
+    fs.writeFile(`${resultsFolder}/brokenLinks.json`, JSON.stringify(brokenURLs), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/brokenLinks.json`)} is saved.`);
     });
 
     await browser.close();
@@ -103,27 +118,53 @@ const crawlAllURLs = async (url, browser) => {
     //   break;
     // }
 
-    /* validate URL format */
-    if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
-      /* remove # from last character of {url} */
-      let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+    if (!isValidURL(links[i])) {
+      invalidURLs.push(links[i]);
+      continue;
+    }
+    console.log(`${chalk.cyan('Testing link response:')} ${links[i]}`)
+    const testPage = await browser.newPage();
+    console.log(`Test page created. Loading: ${links[i]}...`);
+    const testResponse = await testPage.goto(links[i]);
+    console.log(`Test page visiting: ${links[i]}`)
+    const isBrokenURL = (!testResponse.ok());
+    console.log(`Response from ${links[i]}: ${chalk.yellow(testResponse.ok())}`);
 
-      /* check if {cleanUrl} is crawled before */
-      if (isCrawled(cleanUrl)) {
-        /* {cleanUrl} is crawled before */
+    const testPageObj = {
+      url: links[i],
+      code: testResponse.status()
+    };
+
+    await testPage.close();
+    console.log(`Test page closed: ${links[i]}`);
+
+    if (!isBrokenURL) {
+      /* validate URL format */
+      if (isInternalURL(links[i], domainName)) {
+        /* remove # from last character of {url} */
+        let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+
+        /* check if {cleanUrl} is crawled before */
+        if (isCrawled(cleanUrl)) {
+          /* {cleanUrl} is crawled before */
+        } else {
+          console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
+          crawledURLs.push(cleanUrl);
+
+          /* queue crawling new URL*/
+          q.push(async (cb) => {
+            await crawlAllURLs(cleanUrl, browser);
+            cb();
+          });
+        }
       } else {
-        console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
-        crawledURLs.push(cleanUrl);
-
-        /* queue crawling new URL*/
-        q.push(async (cb) => {
-          await crawlAllURLs(cleanUrl, browser);
-          cb();
-        });
+        invalidURLs.push(links[i]);
       }
     } else {
-      invalidURLs.push(links[i]);
+      console.log(`${chalk.bgRed('Broken link:')} ${links[i]}`);
+      brokenURLs.push(testPageObj);
     }
+
   }
   console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
 
@@ -145,6 +186,7 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
   await getPagesWithExternalVideos(page, url, domainName);
   console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+
 
   let index = crawledURLs.indexOf(url);
   console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
@@ -175,8 +217,8 @@ const isValidURL = (url) => {
   - should only start with http:// or https://
   - should not end with .pdf
   */
-  const urlFormat = /^http(s)?:\/\/(.(?!\.pdf$))*$/;
-  return (url.match(urlFormat));
+  const urlFormat = new RegExp(`^http(s)?:\/\/${domainName}(.(?!\.pdf$))*$`);
+  return (url.match(urlFormat) !== null);
 };
 
 const isInternalURL = (url, domain) => {
