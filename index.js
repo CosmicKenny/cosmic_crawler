@@ -119,6 +119,7 @@ const crawlAllURLs = async (url, browser) => {
     // }
 
     if (!isValidURL(links[i])) {
+      console.log(`${chalk.red('Invalid link:')} ${links[i]}`);
       invalidURLs.push(links[i]);
       continue;
     }
@@ -217,14 +218,15 @@ const isValidURL = (url) => {
   - should only start with http:// or https://
   - should not end with .pdf
   */
-  const urlFormat = new RegExp(`^http(s)?:\/\/${domainName}(.(?!\.pdf$))*$`);
+  const urlFormat = /^http(s)?:\/\/(.(?!\.pdf$))*$/;
   return (url.match(urlFormat) !== null);
 };
 
 const isInternalURL = (url, domain) => {
   /* URL should contain the domain name */
   /* TO FIX: need to handle the case if the domain name is not at the beginning. e.g.: for www.abc.com?param=www.domain.com */
-  return (url.includes(domain));
+  const urlFormat = new RegExp(`^http(s)?:\/\/${domainName}`);
+  return (url.match(urlFormat) !== null);
 }
 
 const saveHTML = async (page, url) => {
