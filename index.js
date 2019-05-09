@@ -27,10 +27,10 @@ let globalIndex = 0;
 
 const resultsFolder = 'reports';
 
-// const domainName = 'www.smartnation.sg';
-// const entryUrl = 'https://www.smartnation.sg/';
-const domainName = 'adelphi.digital';
-const entryUrl = 'https://adelphi.digital/';
+const domainName = 'www.areyouready.sg';
+const entryUrl = 'https://www.areyouready.sg/';
+// const domainName = 'adelphi.digital';
+// const entryUrl = 'https://adelphi.digital/';
 
 /* setup crawler */
 (async() => {
@@ -99,22 +99,25 @@ const crawlAllURLs = async (url, browser) => {
 
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
-    /* validate URL format */
     // if (crawledURLs.length >= 15) {
     //   break;
     // }
 
+    /* validate URL format */
     if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
-      /* check if {link[i]} is crawled before */
-      if (isCrawled(links[i])) {
-        /* {links[i]} is crawled before */
+      /* remove # from last character of {url} */
+      let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+
+      /* check if {cleanUrl} is crawled before */
+      if (isCrawled(cleanUrl)) {
+        /* {cleanUrl} is crawled before */
       } else {
-        console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
-        crawledURLs.push(links[i]);
+        console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
+        crawledURLs.push(cleanUrl);
 
         /* queue crawling new URL*/
         q.push(async (cb) => {
-          await crawlAllURLs(links[i], browser);
+          await crawlAllURLs(cleanUrl, browser);
           cb();
         });
       }
@@ -163,14 +166,16 @@ const _getPathName = (url, basePath) => {
 }
 
 const isCrawled = (url) => {
-  /* remove # from last character of {url} */
-  let cleanUrl = (url.slice(-1) == '#') ? url.slice(0, url.length - 1) : url;
-  return (crawledURLs.indexOf(cleanUrl) > -1);
+  return (crawledURLs.indexOf(url) > -1);
 };
 
 const isValidURL = (url) => {
-  /* URL should only start with http:// or https:// */
-  const urlFormat = /^http(s)?:\/\//;
+  /*
+  condition:
+  - should only start with http:// or https://
+  - should not end with .pdf
+  */
+  const urlFormat = /^http(s)?:\/\/(.(?!\.pdf$))*$/;
   return (url.match(urlFormat));
 };
 
