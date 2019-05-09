@@ -13,4 +13,4 @@ const html = `
 </html>
 `
 
-validator.htmlValidate(html, resultsFolder, '1.json');
+validator.htmlValidate('https://adelphi.digital', html, resultsFolder, '1.html');

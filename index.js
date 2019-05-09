@@ -149,7 +149,7 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
 
   console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
-  await htmlValidator.htmlValidate(HTML, `${resultsFolder}/html-validate`, `${index}.json`);
+  await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}.html`);
   console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
 
   await page.close();
