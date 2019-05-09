@@ -1,5 +1,6 @@
 const wcagTest = require('./wcagTester.js');
 
-const resultsFolder = 'reports';
+const resultsFolder = 'reports/wcag';
 
-wcagTester.wcagTester('https://adelphi.digital', resultsFolder);
+wcagTest.wcagTester('https://adelphi.digital', resultsFolder, '1.html', '1.jpg');
+Kenny

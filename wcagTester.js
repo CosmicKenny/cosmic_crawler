@@ -1,22 +1,20 @@
 const chalk = require('chalk');
 const pa11y = require('pa11y');
-const htmlReporter = require('pa11y/reporter/html');
+const htmlReporter = require('pa11y-reporter-html');
 const fs = require('fs');
 
 
-const wcagTester = (url, reportName) => {
-  pa11y(url, {
+const wcagTester = async (url, storage, reportName, screenshotName) => {
+  const results = await pa11y(url, {
+    wait: 1000,
+    screenCapture: `${storage}/${screenshotName}`
+  });
+  const htmlResults = await htmlReporter.results(results);
 
-  }).then((error, results) => {
-    if (error) {
-      console.log(`${chalk.red(`ERROR: ${error}`)}`);
-    }
+  fs.writeFile(`${storage}/${reportName}`, htmlResults, (err, data) => {
+    if (err) console.log(err);
 
-    fs.writeFile(reportName, htmlReporter.results(results), (err, data) => {
-      if (err) console.log(err);
-
-      console.log(`${chalk.underline.blueBright(`${reportName}`)}`);
-    });
+    console.log(`${chalk.underline.blueBright(`${storage}/${reportName}`)} is saved.`);
   });
 };
 
