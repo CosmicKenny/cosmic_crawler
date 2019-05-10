@@ -1,17 +1,23 @@
 const puppeteer = require('puppeteer');
 
-const url = 'https://null/common/Lists/CPFPages/DispForm.aspx?ID=239';
+const url = 'https://www.cpf.gov.sg/Members/others/member-pages/terms-of-use';
 
 (async () => {
   const browser = await puppeteer.launch();
 
   const page = await browser.newPage();
 
-  // let response;
-  // try {
+  let isBroken = false;
   const response = await page.goto(url).catch(err => {
     console.log('ERROR: ' + err);
+    isBroken = true;
   });
+
+  if (!isBroken) {
+    console.log(response.status());
+    isBroken = (!response.ok());
+  }
+  console.log(isBroken);
 
   await page.close();
   await browser.close();

@@ -16,6 +16,7 @@ const htmlValidator = require('./htmlValidate');
 
 let crawledURLs = [];
 let crawledPages = [];
+let testedPages = [];
 let invalidURLs = [];
 let pagesWithExternalIframes = [];
 let pagesWithExternalImages = [];
@@ -59,6 +60,12 @@ const entryUrl = 'https://www.cpf.gov.sg/';
       if (err) console.log(err);
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledPages.json`)} is saved.`);
+    });
+
+    fs.writeFile(`${resultsFolder}/testedPages.json`, JSON.stringify(testedPages), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/testedPages.json`)} is saved.`);
     });
 
     fs.writeFile(`${resultsFolder}/invalidURLs.json`, JSON.stringify(invalidURLs), (err, data) => {
@@ -125,53 +132,56 @@ const crawlAllURLs = async (url, browser) => {
       continue;
     }
 
-    /* Check for {link[i]} is broken links */
-    console.log(`${chalk.cyan('Testing link response:')} ${links[i]}`)
+    /* remove # from last character of {url} */
+    let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+
+    /* check if {cleanUrl} is crawled before */
+    if (isCrawled(cleanUrl)) {
+      continue;
+    }
+
+    /* Check for {cleanUrl} is broken links */
+    console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
     const testPage = await browser.newPage();
-    console.log(`Test page created. Loading: ${links[i]}...`);
+    console.log(`Test page created. Loading: ${cleanUrl}...`);
     let isBrokenURL = false;
-    const testResponse = await testPage.goto(links[i]).catch(err => {
+    let testResponseError = false;
+    const testResponse = await testPage.goto(cleanUrl).catch(err => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
       isBrokenURL = true;
+      testResponseError = true;
     });
-    if (!isBrokenURL) {
+    if (!testResponseError) {
       isBrokenURL = (!testResponse.ok());
     }
-    console.log(`Test page visiting: ${links[i]}`);
-    console.log(`Response from ${links[i]}: ${chalk.yellow(!isBrokenURL)}`);
+    console.log(`Test page visiting: ${cleanUrl}`);
+    console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
 
     const testPageObj = {
-      url: links[i],
-      code: (isBrokenURL) ? null : testResponse.status()
+      source: url,
+      url: cleanUrl,
+      code: (testResponseError) ? null : testResponse.status()
     };
 
+    testedPages.push(testPageObj);
+
     await testPage.close();
-    console.log(`Test page closed: ${links[i]}`);
+    console.log(`Test page closed: ${cleanUrl}`);
 
     if (!isBrokenURL) {
       /* validate URL format */
-      if (isInternalURL(links[i], domainName)) {
-        /* remove # from last character of {url} */
-        let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+      if (isInternalURL(cleanUrl, domainName)) {
+        console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
+        crawledURLs.push(cleanUrl);
 
-        /* check if {cleanUrl} is crawled before */
-        if (isCrawled(cleanUrl)) {
-          /* {cleanUrl} is crawled before */
-        } else {
-          console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
-          crawledURLs.push(cleanUrl);
-
-          /* queue crawling new URL*/
-          q.push(async (cb) => {
-            await crawlAllURLs(cleanUrl, browser);
-            cb();
-          });
-        }
-      } else {
-        invalidURLs.push(links[i]);
+        /* queue crawling new URL*/
+        q.push(async (cb) => {
+          await crawlAllURLs(cleanUrl, browser);
+          cb();
+        });
       }
     } else {
-      console.log(`${chalk.bgRed('Broken link:')} ${links[i]}`);
+      console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
       brokenURLs.push(testPageObj);
     }
 
