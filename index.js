@@ -179,6 +179,7 @@ const crawlAllURLs = async (url, browser) => {
     };
 
     if (testPageObj.code != 403) {
+      /* the URL is considered tested only if it is not 403 */
       testedURLs.push(cleanUrl);
       testedPages.push(testPageObj);
     }
