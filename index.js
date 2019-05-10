@@ -297,7 +297,7 @@ const isFileLink = (url) => {
   - should end with .{ext} or .{ext}?xxx, where ext = pdf, jpg, jpeg, png, xls, xlsx, doc, docx
   */
   const urlFormat = /^http(s)?:\/\/.+(\.(pdf|jpe?g|png|xlsx?|docx?)(\?.*)?){1}$/;
-  return (url.match(urlFormat) == null);
+  return (url.match(urlFormat) !== null);
 };
 
 const isInternalURL = (url, domain) => {
