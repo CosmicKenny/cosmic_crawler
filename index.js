@@ -37,7 +37,7 @@ let globalIndex = 0;
 const resultsFolder = 'reports';
 
 const domainName = 'www.cpf.gov.sg';
-const entryUrl = 'https://www.cpf.gov.sg/Members/Careers/careers/cpfb-careers';
+const entryUrl = 'https://www.cpf.gov.sg/';
 // const domainName = 'adelphi.digital';
 // const entryUrl = 'https://adelphi.digital/';
 
@@ -79,23 +79,47 @@ const entryUrl = 'https://www.cpf.gov.sg/Members/Careers/careers/cpfb-careers';
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/invalidURLs.json`)} is saved.`);
     });
 
-    fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
+    fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(pagesWithIframes), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithIframes.json`)} is saved.`);
     });
 
-    fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
+    fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(pagesWithImages), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithImages.json`)} is saved.`);
     });
 
-    fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
+    fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(pagesWithFiles), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithFiles.json`)} is saved.`);
     });
+
+    fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(pagesWithVideos), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
+    });
+
+    // fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
+    //   if (err) console.log(err);
+
+    //   console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
+    // });
+
+    // fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
+    //   if (err) console.log(err);
+
+    //   console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
+    // });
+
+    // fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
+    //   if (err) console.log(err);
+
+    //   console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
+    // });
 
     fs.writeFile(`${resultsFolder}/brokenLinks.json`, JSON.stringify(brokenURLs), (err, data) => {
       if (err) console.log(err);
@@ -122,7 +146,8 @@ const crawlAllURLs = async (url, browser) => {
 
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
   await page.goto(url).catch((err) => {
-    console.log(err);
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push(`${url}: ${err}`);
   });
   console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
 
@@ -175,7 +200,7 @@ const crawlAllURLs = async (url, browser) => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
       isBrokenURL = true;
       testResponseError = true;
-      errorLogs.push(err);
+      errorLogs.push(`${url}: ${err}`);
     });
     if (!testResponseError) {
       await testPage.waitFor(1000);
@@ -475,7 +500,7 @@ const getPageInformation = async (page, url) => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     });
 
-  const lastUpdateText = await getLastUpdatedDate(page);
+  const lastUpdatedText = await getLastUpdatedDate(page);
 
   let obj = {
     url: url,
