@@ -22,6 +22,7 @@ let pagesWithExternalIframes = [];
 let pagesWithExternalImages = [];
 let pagesWithExternalVideos = [];
 let brokenURLs = [];
+let testedURLs = [];
 
 let q = new queue({
   concurrency: 5
@@ -140,6 +141,11 @@ const crawlAllURLs = async (url, browser) => {
       continue;
     }
 
+    /* check if {cleanUrl} is tested before */
+    if (isTested(cleanUrl)) {
+      continue;
+    }
+
     /* Check for {cleanUrl} is broken links */
     console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
     const testPage = await browser.newPage();
@@ -163,6 +169,7 @@ const crawlAllURLs = async (url, browser) => {
       code: (testResponseError) ? null : testResponse.status()
     };
 
+    testedURLs.push(cleanUrl);
     testedPages.push(testPageObj);
 
     await testPage.close();
@@ -194,31 +201,31 @@ const crawlAllURLs = async (url, browser) => {
   // await takeScreenshot(page);
 
   /* retrieve the HTML of the rendered page */
-  console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
-  let HTML = await page.content();
+  // console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
+  // let HTML = await page.content();
 
-  console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
-  await getPagesWithExternalIframes(page, url, domainName);
-  console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
-  console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
-  await getPagesWithExternalImages(page, url, domainName);
-  console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
-  console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-  await getPagesWithExternalVideos(page, url, domainName);
-  console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  // console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
+  // await getPagesWithExternalIframes(page, url, domainName);
+  // console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+  // console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+  // await getPagesWithExternalImages(page, url, domainName);
+  // console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+  // console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+  // await getPagesWithExternalVideos(page, url, domainName);
+  // console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
 
 
-  let index = crawledURLs.indexOf(url);
-  console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
-  await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}.html`, `${index}.jpg`);
-  console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
+  // let index = crawledURLs.indexOf(url);
+  // console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
+  // await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}.html`, `${index}.jpg`);
+  // console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
 
-  console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
-  await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}`);
-  console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
+  // console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
+  // await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}`);
+  // console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
 
-  await page.close();
-  console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
+  // await page.close();
+  // console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
 };
 
 const _getPathName = (url, basePath) => {
@@ -229,6 +236,10 @@ const _getPathName = (url, basePath) => {
 
 const isCrawled = (url) => {
   return (crawledURLs.indexOf(url) > -1);
+};
+
+const isTested = (url) => {
+  return (testedURLs.indexOf(url) > -1);
 };
 
 const isValidURL = (url) => {
