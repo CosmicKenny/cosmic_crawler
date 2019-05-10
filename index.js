@@ -306,6 +306,16 @@ const isInternalURL = (url, domain) => {
   return (url.match(urlFormat) !== null);
 }
 
+const getLastUpdatedDate = async (page) => {
+  const lastUpdatedText = await page.$eval('#lastUpdatedText', node => node.innerHTML)
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      return null;
+    });
+
+  return lastUpdatedText;
+};
+
 const saveHTML = async (page, url) => {
   const pageContent = await page.content();
 
@@ -465,10 +475,13 @@ const getPageInformation = async (page, url) => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     });
 
+  const lastUpdateText = await getLastUpdatedDate(page);
+
   let obj = {
     url: url,
     title: title,
-    description: description
+    description: description,
+    lastUpdateText: lastUpdatedText
   }
 
   crawledPages.push(obj);
