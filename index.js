@@ -9,7 +9,6 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
-const http = require('http');
 const jsonToCsv = require('./jsonToCsv.js');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
@@ -24,6 +23,10 @@ let pagesWithExternalVideos = [];
 let brokenURLs = [];
 let testedURLs = [];
 let errorLogs = [];
+let pagesWithVideos = [];
+let pagesWithImages = [];
+let pagesWithIframes = [];
+let pagesWithFiles = [];
 
 let q = new queue({
   concurrency: 5
@@ -109,7 +112,7 @@ const entryUrl = 'https://www.cpf.gov.sg/Members/Careers/careers/cpfb-careers';
     await browser.close();
     console.log(chalk.green('Browser closed'));
 
-    jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+    // jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
   });
 
 })();
@@ -132,6 +135,15 @@ const crawlAllURLs = async (url, browser) => {
     // if (crawledURLs.length >= 15) {
     //   break;
     // }
+
+    if (isFileLink(links[i])) {
+      console.log(`${chalk.yellow('PDF Link:')} ${links[i]}`);
+      let filePage = {
+        source: url,
+        file: links[i]
+      };
+      pagesWithFiles.push(filePage);
+    }
 
     /* Check if the {links[i]} is valid URL format */
     if (!isValidURL(links[i])) {
@@ -187,7 +199,6 @@ const crawlAllURLs = async (url, browser) => {
     await testPage.close();
     console.log(`Test page closed: ${cleanUrl}`);
 
-
     if (isBrokenURL && testPageObj.code != 403) {
       console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
       brokenURLs.push(testPageObj);
@@ -218,6 +229,20 @@ const crawlAllURLs = async (url, browser) => {
   // console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
   // let HTML = await page.content();
 
+  console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
+  await getPagesWithIframes(page, url);
+  console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+  console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+  await getPagesWithImages(page, url);
+  console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+  console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+  await getPagesWithVideos(page, url);
+  console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  console.log(`${chalk.bgMagenta('Collecting page information of:')} ${url}`)
+  await getPageInformation(page, url);
+  console.log(`${chalk.bgMagenta('Page information is collected for:')} ${url}`);
+
+
   // console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
   // await getPagesWithExternalIframes(page, url, domainName);
   // console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
@@ -227,7 +252,6 @@ const crawlAllURLs = async (url, browser) => {
   // console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
   // await getPagesWithExternalVideos(page, url, domainName);
   // console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
-
 
   // let index = crawledURLs.indexOf(url);
   // console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
@@ -262,8 +286,18 @@ const isValidURL = (url) => {
   - should only start with http:// or https://
   - should not end with .pdf
   */
-  const urlFormat = /^http(s)?:\/\/(.(?!\.pdf$))*$/;
+  const urlFormat = /^http(s)?:\/\/(.(?!pdf(\?.*)?$))*$/;
   return (url.match(urlFormat) !== null);
+};
+
+const isFileLink = (url) => {
+  /*
+  condition:
+  - should only start with http:// or https://
+  - should end with .{ext} or .{ext}?xxx, where ext = pdf, jpg, jpeg, png, xls, xlsx, doc, docx
+  */
+  const urlFormat = /^http(s)?:\/\/.+(\.(pdf|jpe?g|png|xlsx?|docx?)(\?.*)?){1}$/;
+  return (url.match(urlFormat) == null);
 };
 
 const isInternalURL = (url, domain) => {
@@ -368,6 +402,76 @@ const getPagesWithExternalVideos = async (page, url, domain) => {
       pagesWithExternalVideos.push(obj);
     }
   }
+}
+
+const getPagesWithVideos = async (page, url) => {
+  let $videos = await page.$$('video');
+
+  if ($videos.length > 0) {
+
+    const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
+
+    if (videos.length > 0) {
+      let obj = {
+        source: url,
+        videos: videos
+      }
+
+      pagesWithVideos.push(obj);
+    }
+  }
+}
+
+const getPagesWithImages = async (page, url) => {
+  let $images = await page.$$('img');
+
+  if($images.length > 0) {
+    const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
+
+    if (images.length > 0) {
+      let obj = {
+        url: url,
+        images: images
+      }
+
+      pagesWithImages.push(obj);
+    }
+  }
+}
+
+const getPagesWithIframes = async (page, url) => {
+  let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
+
+  if ($iframes.length > 0) {
+    const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
+    if (iframes.length > 0) {
+      let obj = {
+        url: url,
+        iframes: iframes
+      };
+
+      pagesWithIframes.push(obj);
+    }
+  }
+}
+
+const getPageInformation = async (page, url) => {
+  const title = await page.title().catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+  });
+
+  const description = await page.$eval('meta[name="description"]', node => node.attributes.content.value)
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    });
+
+  let obj = {
+    url: url,
+    title: title,
+    description: description
+  }
+
+  crawledPages.push(obj);
 }
 
 const isExternalSource = (url, domain) => {
