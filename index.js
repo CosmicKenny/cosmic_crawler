@@ -118,22 +118,31 @@ const crawlAllURLs = async (url, browser) => {
     //   break;
     // }
 
+    /* Check if the {links[i]} is valid URL format */
     if (!isValidURL(links[i])) {
       console.log(`${chalk.red('Invalid link:')} ${links[i]}`);
       invalidURLs.push(links[i]);
       continue;
     }
+
+    /* Check for {link[i]} is broken links */
     console.log(`${chalk.cyan('Testing link response:')} ${links[i]}`)
     const testPage = await browser.newPage();
     console.log(`Test page created. Loading: ${links[i]}...`);
-    const testResponse = await testPage.goto(links[i]);
-    console.log(`Test page visiting: ${links[i]}`)
-    const isBrokenURL = (!testResponse.ok());
-    console.log(`Response from ${links[i]}: ${chalk.yellow(testResponse.ok())}`);
+    let isBrokenURL = false;
+    const testResponse = await testPage.goto(links[i]).catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      isBrokenURL = true;
+    });
+    if (!isBrokenURL) {
+      isBrokenURL = (!testResponse.ok());
+    }
+    console.log(`Test page visiting: ${links[i]}`);
+    console.log(`Response from ${links[i]}: ${chalk.yellow(!isBrokenURL)}`);
 
     const testPageObj = {
       url: links[i],
-      code: testResponse.status()
+      code: (isBrokenURL) ? null : testResponse.status()
     };
 
     await testPage.close();
@@ -224,7 +233,6 @@ const isValidURL = (url) => {
 
 const isInternalURL = (url, domain) => {
   /* URL should contain the domain name */
-  /* TO FIX: need to handle the case if the domain name is not at the beginning. e.g.: for www.abc.com?param=www.domain.com */
   const urlFormat = new RegExp(`^http(s)?:\/\/${domainName}`);
   return (url.match(urlFormat) !== null);
 }
