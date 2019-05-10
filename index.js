@@ -23,6 +23,7 @@ let pagesWithExternalImages = [];
 let pagesWithExternalVideos = [];
 let brokenURLs = [];
 let testedURLs = [];
+let errorLogs = [];
 
 let q = new queue({
   concurrency: 5
@@ -99,6 +100,12 @@ const entryUrl = 'https://www.cpf.gov.sg/Members/Careers/careers/cpfb-careers';
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/brokenLinks.json`)} is saved.`);
     });
 
+    fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/errorLogs.json`)} is saved.`);
+    });
+
     await browser.close();
     console.log(chalk.green('Browser closed'));
 
@@ -156,6 +163,7 @@ const crawlAllURLs = async (url, browser) => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
       isBrokenURL = true;
       testResponseError = true;
+      errorLogs.push(err);
     });
     if (!testResponseError) {
       await testPage.waitFor(1000);
@@ -184,7 +192,7 @@ const crawlAllURLs = async (url, browser) => {
       brokenURLs.push(testPageObj);
     }
 
-    /* TO REVISIT: have to continue even if it's 403 code */
+    /* TO FIX: have to continue even if it's 403 code */
     /* validate URL format */
     if (isInternalURL(cleanUrl, domainName)) {
       console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
