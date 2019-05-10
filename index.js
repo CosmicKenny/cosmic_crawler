@@ -33,7 +33,7 @@ let globalIndex = 0;
 const resultsFolder = 'reports';
 
 const domainName = 'www.cpf.gov.sg';
-const entryUrl = 'https://www.cpf.gov.sg/';
+const entryUrl = 'https://www.cpf.gov.sg/Members/Careers/careers/cpfb-careers';
 // const domainName = 'adelphi.digital';
 // const entryUrl = 'https://adelphi.digital/';
 
@@ -158,6 +158,7 @@ const crawlAllURLs = async (url, browser) => {
       testResponseError = true;
     });
     if (!testResponseError) {
+      await testPage.waitFor(1000);
       isBrokenURL = (!testResponse.ok());
     }
     console.log(`Test page visiting: ${cleanUrl}`);
@@ -169,27 +170,31 @@ const crawlAllURLs = async (url, browser) => {
       code: (testResponseError) ? null : testResponse.status()
     };
 
-    testedURLs.push(cleanUrl);
-    testedPages.push(testPageObj);
+    if (testPageObj.code != 403) {
+      testedURLs.push(cleanUrl);
+      testedPages.push(testPageObj);
+    }
 
     await testPage.close();
     console.log(`Test page closed: ${cleanUrl}`);
 
-    if (!isBrokenURL) {
-      /* validate URL format */
-      if (isInternalURL(cleanUrl, domainName)) {
-        console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
-        crawledURLs.push(cleanUrl);
 
-        /* queue crawling new URL*/
-        q.push(async (cb) => {
-          await crawlAllURLs(cleanUrl, browser);
-          cb();
-        });
-      }
-    } else {
+    if (isBrokenURL && testPageObj.code != 403) {
       console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
       brokenURLs.push(testPageObj);
+    }
+
+    /* TO REVISIT: have to continue even if it's 403 code */
+    /* validate URL format */
+    if (isInternalURL(cleanUrl, domainName)) {
+      console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
+      crawledURLs.push(cleanUrl);
+
+      /* queue crawling new URL*/
+      q.push(async (cb) => {
+        await crawlAllURLs(cleanUrl, browser);
+        cb();
+      });
     }
 
   }
