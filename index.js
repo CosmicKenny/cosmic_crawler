@@ -14,6 +14,8 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
+  entryUrl: 'https://www.cpf.gov.sg/',
+  domain: 'www.cpf.gov.sg',
   debug: false,
   checkBrokenLink: true,
   detectFileLink: true,
@@ -24,7 +26,8 @@ const configuration = {
   savePageInfo: true,
   scanWCAG: false,
   validateHTML: false,
-  takeScreenshot: false
+  takeScreenshot: false,
+  reportsFolderPath: 'reports'
 }
 
 let crawledURLs = [];
@@ -48,12 +51,10 @@ let q = new queue({
 
 let globalIndex = 0;
 
-const resultsFolder = 'reports';
+const resultsFolder = configuration.reportsFolderPath;
 
-const domainName = 'www.cpf.gov.sg';
-const entryUrl = 'https://www.cpf.gov.sg/';
-// const domainName = 'adelphi.digital';
-// const entryUrl = 'https://adelphi.digital/';
+const domainName = configuration.domain;
+const entryUrl = configuration.entryUrl;
 
 /* setup crawler */
 (async() => {
