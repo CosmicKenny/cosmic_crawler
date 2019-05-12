@@ -14,19 +14,19 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.cpf.gov.sg/Members/AboutUs/about-us-info/service-standards-for-members/healthcare',
+  entryUrl: 'https://www.cpf.gov.sg/',
   domain: 'www.cpf.gov.sg',
-  pageWaitTime: 100, // used to slow down crawler to prevent being blocked
+  pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
   checkBrokenLink: false,
-  detectFileLink: true,
+  detectFileLink: false,
   checkImageExist: false,
   checkVideoExist: false,
   checkIframeExist: false,
   detectExternalResource: false,
   savePageInfo: true,
-  scanWCAG: true,
-  validateHTML: true,
+  scanWCAG: false,
+  validateHTML: false,
   takeScreenshot: false,
   reportsFolderPath: 'reports'
 }
@@ -205,10 +205,9 @@ const crawlAllURLs = async (url, browser) => {
       if (configuration.detectFileLink) {
         filesInfo.files.push(links[i]);
       }
-      continue;
     }
 
-    /* Check if the {links[i]} is valid URL format */
+    /* Check if the {links[i]} is valid URL format and non PDF file */
     if (!isValidURL(links[i])) {
       console.log(`${chalk.red('Invalid link:')} ${links[i]}`);
       invalidURLs.push(links[i]);
@@ -271,7 +270,7 @@ const crawlAllURLs = async (url, browser) => {
 
     /* TO FIX: have to continue even if it's 403 code */
     /* validate URL format */
-    if (isInternalURL(cleanUrl, domainName)) {
+    if (isInternalURL(cleanUrl, domainName) && !isFileLink(cleanUrl)) {
       console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
       crawledURLs.push(cleanUrl);
 
