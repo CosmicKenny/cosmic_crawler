@@ -13,6 +13,20 @@ const jsonToCsv = require('./jsonToCsv.js');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
+const configuration = {
+  debug: false,
+  checkBrokenLink: true,
+  detectFileLink: true,
+  checkImageExist: true,
+  checkVideoExist: true,
+  checkIframeExist: true,
+  detectExternalResource: false,
+  savePageInfo: true,
+  scanWCAG: false,
+  validateHTML: false,
+  takeScreenshot: false
+}
+
 let crawledURLs = [];
 let crawledPages = [];
 let testedPages = [];
@@ -103,23 +117,25 @@ const entryUrl = 'https://www.cpf.gov.sg/';
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
     });
 
-    // fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
-    //   if (err) console.log(err);
+    if (configuration.detectExternalResource) {
+      fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
+        if (err) console.log(err);
 
-    //   console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
-    // });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
+      });
 
-    // fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
-    //   if (err) console.log(err);
+      fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
+        if (err) console.log(err);
 
-    //   console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
-    // });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
+      });
 
-    // fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
-    //   if (err) console.log(err);
+      fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
+        if (err) console.log(err);
 
-    //   console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
-    // });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
+      });
+    }
 
     fs.writeFile(`${resultsFolder}/brokenLinks.json`, JSON.stringify(brokenURLs), (err, data) => {
       if (err) console.log(err);
@@ -136,7 +152,9 @@ const entryUrl = 'https://www.cpf.gov.sg/';
     await browser.close();
     console.log(chalk.green('Browser closed'));
 
-    // jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+    if (configuration.detectExternalResource) {
+      jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+    }
   });
 
 })();
@@ -157,9 +175,11 @@ const crawlAllURLs = async (url, browser) => {
 
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
-    // if (crawledURLs.length >= 15) {
-    //   break;
-    // }
+    if (configuration.debug) {
+      if (crawledURLs.length >= 15) {
+        break;
+      }
+    }
 
     if (isFileLink(links[i])) {
       console.log(`${chalk.yellow('PDF Link:')} ${links[i]}`);
@@ -186,9 +206,9 @@ const crawlAllURLs = async (url, browser) => {
     }
 
     /* check if {cleanUrl} is tested before */
-    if (isTested(cleanUrl)) {
-      continue;
-    }
+    // if (isTested(cleanUrl)) {
+    //   continue;
+    // }
 
     /* Check for {cleanUrl} is broken links */
     console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
@@ -247,48 +267,64 @@ const crawlAllURLs = async (url, browser) => {
 
   // =====================================================
   /* Do other fun things for this page here */
-  // console.log('Taking screenshot...');
-  // await takeScreenshot(page);
+  if (configuration.takeScreenshot) {
+    console.log('Taking screenshot...');
+    await takeScreenshot(page);
+  }
 
-  /* retrieve the HTML of the rendered page */
-  // console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
-  // let HTML = await page.content();
+  if (configuration.checkIframeExist) {
+    console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
+    await getPagesWithIframes(page, url);
+    console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+  }
 
-  console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
-  await getPagesWithIframes(page, url);
-  console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
-  console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
-  await getPagesWithImages(page, url);
-  console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
-  console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-  await getPagesWithVideos(page, url);
-  console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
-  console.log(`${chalk.bgMagenta('Collecting page information of:')} ${url}`)
-  await getPageInformation(page, url);
-  console.log(`${chalk.bgMagenta('Page information is collected for:')} ${url}`);
+  if (configuration.checkImageExist) {
+    console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+    await getPagesWithImages(page, url);
+    console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+  }
 
+  if (configuration.checkVideoExist) {
+    console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+    await getPagesWithVideos(page, url);
+    console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  }
 
-  // console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
-  // await getPagesWithExternalIframes(page, url, domainName);
-  // console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
-  // console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
-  // await getPagesWithExternalImages(page, url, domainName);
-  // console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
-  // console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-  // await getPagesWithExternalVideos(page, url, domainName);
-  // console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  if (configuration.savePageInfo) {
+    console.log(`${chalk.bgMagenta('Collecting page information of:')} ${url}`)
+    await getPageInformation(page, url);
+    console.log(`${chalk.bgMagenta('Page information is collected for:')} ${url}`);
+  }
 
-  // let index = crawledURLs.indexOf(url);
-  // console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
-  // await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}.html`, `${index}.jpg`);
-  // console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
+  if (configuration.detectExternalResource) {
+    console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
+    await getPagesWithExternalIframes(page, url, domainName);
+    console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+    console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+    await getPagesWithExternalImages(page, url, domainName);
+    console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+    console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+    await getPagesWithExternalVideos(page, url, domainName);
+    console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  }
 
-  // console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
-  // await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}`);
-  // console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
+  let index = crawledURLs.indexOf(url);
+  if (configuration.scanWCAG) {
+    console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
+    await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}.html`, `${index}.jpg`);
+    console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
+  }
 
-  // await page.close();
-  // console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
+  if (configuration.validateHTML) {
+    console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
+    let HTML = await page.content();
+    console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
+    await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}`);
+    console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
+  }
+
+  await page.close();
+  console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
 };
 
 const _getPathName = (url, basePath) => {
