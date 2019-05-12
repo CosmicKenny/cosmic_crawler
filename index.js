@@ -16,6 +16,7 @@ const htmlValidator = require('./htmlValidate');
 const configuration = {
   entryUrl: 'https://www.cpf.gov.sg/Members/AboutUs/about-us-info/service-standards-for-members/healthcare',
   domain: 'www.cpf.gov.sg',
+  pageWaitTime: 100, // used to slow down crawler to prevent being blocked
   debug: false,
   checkBrokenLink: false,
   detectFileLink: true,
@@ -172,7 +173,7 @@ const entryUrl = configuration.entryUrl;
 
 const crawlAllURLs = async (url, browser) => {
   let page = await browser.newPage();
-  // await page.waitFor(1500);
+  await page.waitFor(configuration.pageWaitTime);
 
   let filesInfo = {
     source: url,
