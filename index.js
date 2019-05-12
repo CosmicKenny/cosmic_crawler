@@ -9,13 +9,13 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
-const jsonToCsv = require('./jsonToCsv.js');
+const jsonMerger = require('./jsonMerger.js');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.cpf.gov.sg/',
-  domain: 'www.cpf.gov.sg',
+  entryUrl: 'https://www.areyouready.sg/',
+  domain: 'www.areyouready.sg',
   debug: false,
   checkBrokenLink: true,
   detectFileLink: true,
@@ -24,8 +24,8 @@ const configuration = {
   checkIframeExist: true,
   detectExternalResource: false,
   savePageInfo: true,
-  scanWCAG: false,
-  validateHTML: false,
+  scanWCAG: true,
+  validateHTML: true,
   takeScreenshot: false,
   reportsFolderPath: 'reports'
 }
@@ -154,7 +154,7 @@ const entryUrl = configuration.entryUrl;
     console.log(chalk.green('Browser closed'));
 
     if (configuration.detectExternalResource) {
-      jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+      jsonMerger.jsonMerger([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
     }
   });
 
