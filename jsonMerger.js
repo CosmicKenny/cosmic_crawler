@@ -76,9 +76,9 @@ const afterReadingFiles = () => {
   });
 };
 
-const jsonToCsv = (files, storage) => {
+const jsonMerger = (files, storage) => {
   allFiles = files;
   recursiveReadFile(0, afterReadingFiles);
 };
 
-module.exports.jsonToCsv = jsonToCsv;
+module.exports.jsonMerger = jsonMerger;
