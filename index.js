@@ -14,18 +14,18 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.areyouready.sg/',
-  domain: 'www.areyouready.sg',
+  entryUrl: 'https://www.cpf.gov.sg/',
+  domain: 'www.cpf.gov.sg',
   debug: false,
-  checkBrokenLink: true,
-  detectFileLink: true,
-  checkImageExist: true,
-  checkVideoExist: true,
-  checkIframeExist: true,
+  checkBrokenLink: false,
+  detectFileLink: false,
+  checkImageExist: false,
+  checkVideoExist: false,
+  checkIframeExist: false,
   detectExternalResource: false,
   savePageInfo: true,
-  scanWCAG: true,
-  validateHTML: true,
+  scanWCAG: false,
+  validateHTML: false,
   takeScreenshot: false,
   reportsFolderPath: 'reports'
 }
@@ -94,29 +94,37 @@ const entryUrl = configuration.entryUrl;
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/invalidURLs.json`)} is saved.`);
     });
 
-    fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(pagesWithIframes), (err, data) => {
-      if (err) console.log(err);
+    if (configuration.checkIframeExist) {
+      fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(pagesWithIframes), (err, data) => {
+        if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithIframes.json`)} is saved.`);
-    });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithIframes.json`)} is saved.`);
+      });
+    }
 
-    fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(pagesWithImages), (err, data) => {
-      if (err) console.log(err);
+    if (configuration.checkImageExist) {
+      fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(pagesWithImages), (err, data) => {
+        if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithImages.json`)} is saved.`);
-    });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithImages.json`)} is saved.`);
+      });
+    }
 
-    fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(pagesWithFiles), (err, data) => {
-      if (err) console.log(err);
+    if (configuration.detectFileLink) {
+      fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(pagesWithFiles), (err, data) => {
+        if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithFiles.json`)} is saved.`);
-    });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithFiles.json`)} is saved.`);
+      });
+    }
 
-    fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(pagesWithVideos), (err, data) => {
-      if (err) console.log(err);
+    if (configuration.checkVideoExist) {
+      fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(pagesWithVideos), (err, data) => {
+        if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
-    });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
+      });
+    }
 
     if (configuration.detectExternalResource) {
       fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
@@ -138,11 +146,13 @@ const entryUrl = configuration.entryUrl;
       });
     }
 
-    fs.writeFile(`${resultsFolder}/brokenLinks.json`, JSON.stringify(brokenURLs), (err, data) => {
-      if (err) console.log(err);
+    if (configuration.checkBrokenLink) {
+      fs.writeFile(`${resultsFolder}/brokenLinks.json`, JSON.stringify(brokenURLs), (err, data) => {
+        if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/brokenLinks.json`)} is saved.`);
-    });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/brokenLinks.json`)} is saved.`);
+      });
+    }
 
     fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
       if (err) console.log(err);
@@ -211,43 +221,45 @@ const crawlAllURLs = async (url, browser) => {
     //   continue;
     // }
 
-    /* Check for {cleanUrl} is broken links */
-    console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
-    const testPage = await browser.newPage();
-    console.log(`Test page created. Loading: ${cleanUrl}...`);
-    let isBrokenURL = false;
-    let testResponseError = false;
-    const testResponse = await testPage.goto(cleanUrl).catch(err => {
-      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-      isBrokenURL = true;
-      testResponseError = true;
-      errorLogs.push(`${url}: ${err}`);
-    });
-    if (!testResponseError) {
-      await testPage.waitFor(1000);
-      isBrokenURL = (!testResponse.ok());
-    }
-    console.log(`Test page visiting: ${cleanUrl}`);
-    console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
+    if (configuration.checkBrokenLink) {
+      /* Check for {cleanUrl} is broken links */
+      console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
+      const testPage = await browser.newPage();
+      console.log(`Test page created. Loading: ${cleanUrl}...`);
+      let isBrokenURL = false;
+      let testResponseError = false;
+      const testResponse = await testPage.goto(cleanUrl).catch(err => {
+        console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+        isBrokenURL = true;
+        testResponseError = true;
+        errorLogs.push(`${url}: ${err}`);
+      });
+      if (!testResponseError) {
+        await testPage.waitFor(1000);
+        isBrokenURL = (!testResponse.ok());
+      }
+      console.log(`Test page visiting: ${cleanUrl}`);
+      console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
 
-    const testPageObj = {
-      source: url,
-      url: cleanUrl,
-      code: (testResponseError) ? null : testResponse.status()
-    };
+      const testPageObj = {
+        source: url,
+        url: cleanUrl,
+        code: (testResponseError) ? null : testResponse.status()
+      };
 
-    if (testPageObj.code != 403) {
-      /* the URL is considered tested only if it is not 403 */
-      testedURLs.push(cleanUrl);
-      testedPages.push(testPageObj);
-    }
+      if (testPageObj.code != 403) {
+        /* the URL is considered tested only if it is not 403 */
+        testedURLs.push(cleanUrl);
+        testedPages.push(testPageObj);
+      }
 
-    await testPage.close();
-    console.log(`Test page closed: ${cleanUrl}`);
+      await testPage.close();
+      console.log(`Test page closed: ${cleanUrl}`);
 
-    if (isBrokenURL && testPageObj.code != 403) {
-      console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
-      brokenURLs.push(testPageObj);
+      if (isBrokenURL && testPageObj.code != 403) {
+        console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
+        brokenURLs.push(testPageObj);
+      }
     }
 
     /* TO FIX: have to continue even if it's 403 code */
@@ -535,6 +547,7 @@ const getPageInformation = async (page, url) => {
   const description = await page.$eval('meta[name="description"]', node => node.attributes.content.value)
     .catch(err => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      return null;
     });
 
   const lastUpdatedText = await getLastUpdatedDate(page);

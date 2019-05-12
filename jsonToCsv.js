@@ -2,7 +2,7 @@ const { Parser } = require('json2csv');
 const fs = require('fs');
 
 
-const jsonToCsv = (file, fields) => {
+const jsonToCsv = (file, fields, reportName) => {
   const parser = new Parser({ fields });
 
   fs.readFile(file, (err, data) => {
@@ -12,10 +12,10 @@ const jsonToCsv = (file, fields) => {
 
     const csv = parser.parse(JSON.parse(data));
 
-    fs.writeFile('reports/brokenLinks.csv', csv, (err, data2) => {
+    fs.writeFile(reportName, csv, (err, data2) => {
       if (err) console.log(err);
 
-      console.log('reports/brokenLinks.csv is saved');
+      console.log(`${reportName} is saved`);
     });
   });
 }
