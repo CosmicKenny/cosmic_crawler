@@ -14,18 +14,18 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.cpf.gov.sg/',
+  entryUrl: 'https://www.cpf.gov.sg/Members/AboutUs/about-us-info/service-standards-for-members/healthcare',
   domain: 'www.cpf.gov.sg',
   debug: false,
   checkBrokenLink: false,
-  detectFileLink: false,
+  detectFileLink: true,
   checkImageExist: false,
   checkVideoExist: false,
   checkIframeExist: false,
   detectExternalResource: false,
   savePageInfo: true,
-  scanWCAG: false,
-  validateHTML: false,
+  scanWCAG: true,
+  validateHTML: true,
   takeScreenshot: false,
   reportsFolderPath: 'reports'
 }
@@ -80,12 +80,6 @@ const entryUrl = configuration.entryUrl;
       if (err) console.log(err);
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledPages.json`)} is saved.`);
-    });
-
-    fs.writeFile(`${resultsFolder}/testedPages.json`, JSON.stringify(testedPages), (err, data) => {
-      if (err) console.log(err);
-
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/testedPages.json`)} is saved.`);
     });
 
     fs.writeFile(`${resultsFolder}/invalidURLs.json`, JSON.stringify(invalidURLs), (err, data) => {
@@ -152,6 +146,12 @@ const entryUrl = configuration.entryUrl;
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/brokenLinks.json`)} is saved.`);
       });
+
+      fs.writeFile(`${resultsFolder}/testedPages.json`, JSON.stringify(testedPages), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/testedPages.json`)} is saved.`);
+      });
     }
 
     fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
@@ -172,6 +172,12 @@ const entryUrl = configuration.entryUrl;
 
 const crawlAllURLs = async (url, browser) => {
   let page = await browser.newPage();
+  // await page.waitFor(1500);
+
+  let filesInfo = {
+    source: url,
+    files: []
+  };
 
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
   await page.goto(url).catch((err) => {
@@ -185,6 +191,7 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
 
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
+
   for (let i = 0; i < links.length; i++) {
     if (configuration.debug) {
       if (crawledURLs.length >= 15) {
@@ -193,12 +200,11 @@ const crawlAllURLs = async (url, browser) => {
     }
 
     if (isFileLink(links[i])) {
-      console.log(`${chalk.yellow('PDF Link:')} ${links[i]}`);
-      let filePage = {
-        source: url,
-        file: links[i]
-      };
-      pagesWithFiles.push(filePage);
+      console.log(`${chalk.yellow('Non HTML Link:')} ${links[i]}`);
+      if (configuration.detectFileLink) {
+        filesInfo.files.push(links[i]);
+      }
+      continue;
     }
 
     /* Check if the {links[i]} is valid URL format */
@@ -283,6 +289,10 @@ const crawlAllURLs = async (url, browser) => {
   if (configuration.takeScreenshot) {
     console.log('Taking screenshot...');
     await takeScreenshot(page);
+  }
+
+  if (configuration.detectFileLink) {
+    pagesWithFiles.push(filesInfo);
   }
 
   if (configuration.checkIframeExist) {
