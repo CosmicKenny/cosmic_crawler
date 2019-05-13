@@ -2,8 +2,11 @@ const { Parser } = require('json2csv');
 const fs = require('fs');
 
 
-const jsonToCsv = (file, fields, reportName) => {
-  const parser = new Parser({ fields });
+const jsonToCsv = (file, fields, reportName, unwind) => {
+  const parser = new Parser({
+    fields: fields,
+    unwind: unwind
+  });
 
   fs.readFile(file, (err, data) => {
     if (err) console.log(err);
