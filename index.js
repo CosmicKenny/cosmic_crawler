@@ -14,17 +14,18 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.cpf.gov.sg/employers/',
-  domain: 'www.cpf.gov.sg',
+  entryUrl: 'https://www.population.sg/articles/',
+  domain: 'www.population.sg',
+  ajaxListingCrawling: true,
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
-  debug: false,
+  debug: false, // will stop crawler when the number of crawled URLs hit > 15
   checkBrokenLink: false,
   detectFileLink: false,
   checkImageExist: false,
   checkVideoExist: false,
   checkIframeExist: false,
-  detectExternalResource: false,
-  savePageInfo: true,
+  detectExternalResource: true,
+  savePageInfo: false,
   scanWCAG: false,
   validateHTML: false,
   takeScreenshot: false,
@@ -65,7 +66,7 @@ const entryUrl = configuration.entryUrl;
   console.log(chalk.green('Browser launched'));
 
   /* sameUrlCrawling = true when there is no different page URL for different pages in listing page */
-  const sameUrlCrawling = true;
+  const sameUrlCrawling = configuration.ajaxListingCrawling;
 
   if (sameUrlCrawling) {
     const page = await browser.newPage();
@@ -195,34 +196,41 @@ const entryUrl = configuration.entryUrl;
 })();
 
 const crawlAllURLsInAjax = async (url, page, browser) => {
-  let links;
   console.log(`${chalk.magentaBright('Waiting for links to be available...')}`);
   await page.waitForSelector('#wsContentListTable a');
   console.log(`${chalk.magentaBright('Links are loaded. Parsing all links...')}`);
-  links = await getAllLinks(page, '#wsContentListTable');
+  const links = await getAllLinks(page, '#wsContentListTable');
 
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
-    if (crawledURLs.length >= 10) {
-      break;
-    }
-    /* validate URL format */
-    if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
-      /* check if {link[i]} is crawled before */
-      if (isCrawled(links[i])) {
-        /* {links[i]} is crawled before */
-      } else {
-        console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
-        crawledURLs.push(links[i]);
-        /* queue crawling new URL*/
-        q.push(async (cb) => {
-          await crawlAllURLs(links[i], browser);
-          cb();
-        });
+    if (configuration.debug) {
+      if (crawledURLs.length >= 50) {
+        break;
       }
-    } else {
+    }
+
+    if (!isValidURL(links[i])) {
       invalidURLs.push(links[i]);
+      continue;
+    }
+
+    let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+
+    if (isCrawled(cleanUrl)) {
+      continue;
+    }
+
+    /* validate URL format */
+    if (isInternalURL(cleanUrl, domainName) && !isFileLink(cleanUrl)) {
+      console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
+      crawledURLs.push(cleanUrl);
+
+      /* queue crawling new URL*/
+      q.push(async (cb) => {
+        await crawlAllURLs(cleanUrl, browser);
+        cb();
+      });
     }
   }
   console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
@@ -247,7 +255,10 @@ const crawlAllURLsInAjax = async (url, page, browser) => {
   await nextLink.click();
   console.log('next link clicked');
   await page.waitForSelector('#wsContentListTable_processing', {
-    hidden: true
+    hidden: true,
+    timeout: 60000
+  }).catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
   });
   console.log('loading gif hidden');
   await crawlAllURLsInAjax(url, page, browser);
@@ -275,14 +286,14 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
 
   console.log(`${chalk.cyan('Parsing all links in:')} ${url}...`);
-  links = await getAllLinks(page);
+  const links = await getAllLinks(page);
 
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
 
   for (let i = 0; i < links.length; i++) {
     if (configuration.debug) {
-      if (crawledURLs.length >= 15) {
+      if (crawledURLs.length >= 50) {
         break;
       }
     }
