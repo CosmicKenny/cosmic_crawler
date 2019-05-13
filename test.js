@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer');
+const chalk = require('chalk');
 
 let browser;
 let page;
@@ -65,3 +66,13 @@ const navigateNext = async () => {
   links = await page.$$eval('#wsContentListTable a', as => as.map(a => a.href));
   console.log(links);
 }
+
+const getLastUpdatedDate = async (page) => {
+  const lastUpdatedText = await page.$eval('#lastUpdatedText', node => node.innerHTML)
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      return null;
+    });
+
+  return lastUpdatedText;
+};

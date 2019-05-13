@@ -9,13 +9,42 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
-const jsonToCsv = require('./jsonToCsv.js');
+const jsonMerger = require('./jsonMerger.js');
+const wcagTester = require('./wcagTester.js');
+const htmlValidator = require('./htmlValidate');
+
+const configuration = {
+  entryUrl: 'https://www.cpf.gov.sg/employers/',
+  domain: 'www.cpf.gov.sg',
+  pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
+  debug: false,
+  checkBrokenLink: false,
+  detectFileLink: false,
+  checkImageExist: false,
+  checkVideoExist: false,
+  checkIframeExist: false,
+  detectExternalResource: false,
+  savePageInfo: true,
+  scanWCAG: false,
+  validateHTML: false,
+  takeScreenshot: false,
+  reportsFolderPath: 'reports'
+}
 
 let crawledURLs = [];
+let crawledPages = [];
+let testedPages = [];
 let invalidURLs = [];
 let pagesWithExternalIframes = [];
 let pagesWithExternalImages = [];
 let pagesWithExternalVideos = [];
+let brokenURLs = [];
+let testedURLs = [];
+let errorLogs = [];
+let pagesWithVideos = [];
+let pagesWithImages = [];
+let pagesWithIframes = [];
+let pagesWithFiles = [];
 
 let q = new queue({
   concurrency: 5
@@ -24,12 +53,10 @@ let q = new queue({
 let globalIndex = 0;
 let testRun = 0;
 
-const resultsFolder = 'reports';
+const resultsFolder = configuration.reportsFolderPath;
 
-const domainName = 'www.population.sg';
-const entryUrl = 'https://www.population.sg/articles';
-// const domainName = 'adelphi.digital';
-// const entryUrl = 'https://adelphi.digital/';
+const domainName = configuration.domain;
+const entryUrl = configuration.entryUrl;
 
 /* setup crawler */
 (async() => {
@@ -73,34 +100,96 @@ const entryUrl = 'https://www.population.sg/articles';
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
     });
 
+    fs.writeFile(`${resultsFolder}/crawledPages.json`, JSON.stringify(crawledPages), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledPages.json`)} is saved.`);
+    });
+
     fs.writeFile(`${resultsFolder}/invalidURLs.json`, JSON.stringify(invalidURLs), (err, data) => {
       if (err) console.log(err);
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/invalidURLs.json`)} is saved.`);
     });
 
-    fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
+    if (configuration.checkIframeExist) {
+      fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(pagesWithIframes), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithIframes.json`)} is saved.`);
+      });
+    }
+
+    if (configuration.checkImageExist) {
+      fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(pagesWithImages), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithImages.json`)} is saved.`);
+      });
+    }
+
+    if (configuration.detectFileLink) {
+      fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(pagesWithFiles), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithFiles.json`)} is saved.`);
+      });
+    }
+
+    if (configuration.checkVideoExist) {
+      fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(pagesWithVideos), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
+      });
+    }
+
+    if (configuration.detectExternalResource) {
+      fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
+      });
+
+      fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
+      });
+
+      fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
+      });
+    }
+
+    if (configuration.checkBrokenLink) {
+      fs.writeFile(`${resultsFolder}/brokenLinks.json`, JSON.stringify(brokenURLs), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/brokenLinks.json`)} is saved.`);
+      });
+
+      fs.writeFile(`${resultsFolder}/testedPages.json`, JSON.stringify(testedPages), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/testedPages.json`)} is saved.`);
+      });
+    }
+
+    fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
       if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
-    });
-
-    fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
-      if (err) console.log(err);
-
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
-    });
-
-    fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
-      if (err) console.log(err);
-
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/errorLogs.json`)} is saved.`);
     });
 
     await browser.close();
     console.log(chalk.green('Browser closed'));
 
-    jsonToCsv.jsonToCsv([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+    if (configuration.detectExternalResource) {
+      jsonMerger.jsonMerger([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+    }
   });
 
 })();
@@ -115,9 +204,9 @@ const crawlAllURLsInAjax = async (url, page, browser) => {
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
   for (let i = 0; i < links.length; i++) {
-    // if (crawledURLs.length >= 10) {
-    //   break;
-    // }
+    if (crawledURLs.length >= 10) {
+      break;
+    }
     /* validate URL format */
     if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
       /* check if {link[i]} is crawled before */
@@ -165,13 +254,23 @@ const crawlAllURLsInAjax = async (url, page, browser) => {
 }
 
 const crawlAllURLs = async (url, browser) => {
-  let links;
+  let page = await browser.newPage();
+  await page.waitFor(configuration.pageWaitTime);
 
-  const page = await browser.newPage();
+  let filesInfo = {
+    source: url,
+    files: []
+  };
 
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
-  await page.goto(url).catch((err) => {
-    console.log(err);
+  await page.goto(url, {
+    timeout: 60000
+  }).catch((err) => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push({
+      url: url,
+      error: err
+    });
   });
   console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
 
@@ -180,43 +279,162 @@ const crawlAllURLs = async (url, browser) => {
 
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
+
   for (let i = 0; i < links.length; i++) {
-    // if (crawledURLs.length >= 10) {
-    //   break;
-    // }
-    /* validate URL format */
-    if (isValidURL(links[i]) && isInternalURL(links[i], domainName)) {
-      /* check if {link[i]} is crawled before */
-      if (isCrawled(links[i])) {
-        /* {links[i]} is crawled before */
-      } else {
-        console.log(`${chalk.yellowBright('New URL found:')} ${links[i]}`);
-        crawledURLs.push(links[i]);
-        /* queue crawling new URL*/
-        q.push(async (cb) => {
-          await crawlAllURLs(links[i], browser);
-          cb();
-        });
+    if (configuration.debug) {
+      if (crawledURLs.length >= 15) {
+        break;
       }
-    } else {
-      invalidURLs.push(links[i]);
     }
+
+    if (isFileLink(links[i])) {
+      console.log(`${chalk.yellow('Non HTML Link:')} ${links[i]}`);
+      if (configuration.detectFileLink) {
+        filesInfo.files.push(links[i]);
+      }
+    }
+
+    /* Check if the {links[i]} is valid URL format and non PDF file */
+    if (!isValidURL(links[i])) {
+      console.log(`${chalk.red('Invalid link:')} ${links[i]}`);
+      invalidURLs.push(links[i]);
+      continue;
+    }
+
+    /* remove # from last character of {url} */
+    let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+
+    /* check if {cleanUrl} is crawled before */
+    if (isCrawled(cleanUrl)) {
+      continue;
+    }
+
+    /* check if {cleanUrl} is tested before */
+    // if (isTested(cleanUrl)) {
+    //   continue;
+    // }
+
+    if (configuration.checkBrokenLink) {
+      /* Check for {cleanUrl} is broken links */
+      console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
+      const testPage = await browser.newPage();
+      console.log(`Test page created. Loading: ${cleanUrl}...`);
+      let isBrokenURL = false;
+      let testResponseError = false;
+      const testResponse = await testPage.goto(cleanUrl).catch(err => {
+        console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+        isBrokenURL = true;
+        testResponseError = true;
+        errorLogs.push({
+          url: url,
+          error: err
+        });
+      });
+      if (!testResponseError) {
+        await testPage.waitFor(1000);
+        isBrokenURL = (!testResponse.ok());
+      }
+      console.log(`Test page visiting: ${cleanUrl}`);
+      console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
+
+      const testPageObj = {
+        source: url,
+        url: cleanUrl,
+        code: (testResponseError) ? null : testResponse.status()
+      };
+
+      if (testPageObj.code != 403) {
+        /* the URL is considered tested only if it is not 403 */
+        testedURLs.push(cleanUrl);
+        testedPages.push(testPageObj);
+      }
+
+      await testPage.close();
+      console.log(`Test page closed: ${cleanUrl}`);
+
+      if (isBrokenURL && testPageObj.code != 403) {
+        console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
+        brokenURLs.push(testPageObj);
+      }
+    }
+
+    /* TO FIX: have to continue even if it's 403 code */
+    /* validate URL format */
+    if (isInternalURL(cleanUrl, domainName) && !isFileLink(cleanUrl)) {
+      console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
+      crawledURLs.push(cleanUrl);
+
+      /* queue crawling new URL*/
+      q.push(async (cb) => {
+        await crawlAllURLs(cleanUrl, browser);
+        cb();
+      });
+    }
+
   }
   console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
 
+  // =====================================================
   /* Do other fun things for this page here */
-  // console.log('Taking screenshot...');
-  // await takeScreenshot(page);
+  if (configuration.takeScreenshot) {
+    console.log('Taking screenshot...');
+    await takeScreenshot(page);
+  }
 
-  console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
-  await getPagesWithExternalIframes(page, url, domainName);
-  console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
-  console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
-  await getPagesWithExternalImages(page, url, domainName);
-  console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
-  console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-  await getPagesWithExternalVideos(page, url, domainName);
-  console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  if (configuration.detectFileLink) {
+    pagesWithFiles.push(filesInfo);
+  }
+
+  if (configuration.checkIframeExist) {
+    console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
+    await getPagesWithIframes(page, url);
+    console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+  }
+
+  if (configuration.checkImageExist) {
+    console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+    await getPagesWithImages(page, url);
+    console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+  }
+
+  if (configuration.checkVideoExist) {
+    console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+    await getPagesWithVideos(page, url);
+    console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  }
+
+  if (configuration.savePageInfo) {
+    console.log(`${chalk.bgMagenta('Collecting page information of:')} ${url}`)
+    await getPageInformation(page, url);
+    console.log(`${chalk.bgMagenta('Page information is collected for:')} ${url}`);
+  }
+
+  if (configuration.detectExternalResource) {
+    console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
+    await getPagesWithExternalIframes(page, url, domainName);
+    console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+    console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+    await getPagesWithExternalImages(page, url, domainName);
+    console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+    console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+    await getPagesWithExternalVideos(page, url, domainName);
+    console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+  }
+
+  let index = crawledURLs.indexOf(url);
+  if (configuration.scanWCAG) {
+    console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
+    await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}.html`, `${index}.jpg`);
+    console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
+  }
+
+  if (configuration.validateHTML) {
+    console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
+    let HTML = await page.content();
+    console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
+    await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}`);
+    console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
+  }
 
   await page.close();
   console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
@@ -229,21 +447,48 @@ const _getPathName = (url, basePath) => {
 }
 
 const isCrawled = (url) => {
-  let cleanUrl = url;
-  return (crawledURLs.indexOf(cleanUrl) > -1);
+  return (crawledURLs.indexOf(url) > -1);
+};
+
+const isTested = (url) => {
+  return (testedURLs.indexOf(url) > -1);
 };
 
 const isValidURL = (url) => {
-  /* URL should only start with http:// or https:// */
-  const urlFormat = /^http(s)?:\/\//;
-  return (url.match(urlFormat));
+  /*
+  condition:
+  - should only start with http:// or https://
+  - should not end with .pdf
+  */
+  const urlFormat = /^http(s)?:\/\/(.(?!pdf(\?.*)?$))*$/;
+  return (url.match(urlFormat) !== null);
+};
+
+const isFileLink = (url) => {
+  /*
+  condition:
+  - should only start with http:// or https://
+  - should end with .{ext} or .{ext}?xxx, where ext = pdf, jpg, jpeg, png, xls, xlsx, doc, docx
+  */
+  const urlFormat = /^http(s)?:\/\/.+(\.(pdf|jpe?g|png|xlsx?|docx?)(\?.*)?){1}$/;
+  return (url.match(urlFormat) !== null);
 };
 
 const isInternalURL = (url, domain) => {
   /* URL should contain the domain name */
-  /* TO FIX: need to handle the case if the domain name is not at the beginning. e.g.: for www.abc.com?param=www.domain.com */
-  return (url.includes(domain));
+  const urlFormat = new RegExp(`^http(s)?:\/\/${domainName}`);
+  return (url.match(urlFormat) !== null);
 }
+
+const getLastUpdatedDate = async (page) => {
+  const lastUpdatedText = await page.$eval('#lastUpdatedText', node => node.innerHTML)
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      return null;
+    });
+
+  return lastUpdatedText;
+};
 
 const saveHTML = async (page, url) => {
   const pageContent = await page.content();
@@ -341,6 +586,88 @@ const getPagesWithExternalVideos = async (page, url, domain) => {
       pagesWithExternalVideos.push(obj);
     }
   }
+}
+
+const getPagesWithVideos = async (page, url) => {
+  let $videos = await page.$$('video');
+
+  if ($videos.length > 0) {
+
+    const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
+
+    if (videos.length > 0) {
+      let obj = {
+        source: url,
+        videos: videos
+      }
+
+      pagesWithVideos.push(obj);
+    }
+  }
+}
+
+const getPagesWithImages = async (page, url) => {
+  let $images = await page.$$('img');
+
+  if($images.length > 0) {
+    const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
+
+    if (images.length > 0) {
+      let obj = {
+        url: url,
+        images: images
+      }
+
+      pagesWithImages.push(obj);
+    }
+  }
+}
+
+const getPagesWithIframes = async (page, url) => {
+  let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
+
+  if ($iframes.length > 0) {
+    const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
+    if (iframes.length > 0) {
+      let obj = {
+        url: url,
+        iframes: iframes
+      };
+
+      pagesWithIframes.push(obj);
+    }
+  }
+}
+
+const getPageInformation = async (page, url) => {
+  const title = await page.title().catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push({
+      url: url,
+      error: err
+    });
+  });
+
+  const description = await page.$eval('meta[name="description"]', node => node.attributes.content.value)
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      errorLogs.push({
+        url: url,
+        error: err
+      });
+      return null;
+    });
+
+  const lastUpdatedText = await getLastUpdatedDate(page);
+
+  let obj = {
+    url: url,
+    title: title,
+    description: description,
+    lastUpdateText: lastUpdatedText
+  }
+
+  crawledPages.push(obj);
 }
 
 const isExternalSource = (url, domain) => {
