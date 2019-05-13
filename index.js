@@ -14,21 +14,22 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.cpf.gov.sg/employers/',
-  domain: 'www.cpf.gov.sg',
+  entryUrl: 'https://www.areyouready.sg/',
+  domain: 'www.areyouready.sg',
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
-  checkBrokenLink: false,
-  detectFileLink: false,
-  checkImageExist: false,
-  checkVideoExist: false,
-  checkIframeExist: false,
+  checkBrokenLink: true,
+  detectFileLink: true,
+  checkImageExist: true,
+  checkVideoExist: true,
+  checkIframeExist: true,
   detectExternalResource: false,
   savePageInfo: true,
-  scanWCAG: false,
-  validateHTML: false,
+  scanWCAG: true,
+  validateHTML: true,
   takeScreenshot: false,
-  reportsFolderPath: 'reports'
+  reportsFolderPath: 'reports',
+  lastUpdatedTextSelector: '#lastUpdatedText'
 }
 
 let crawledURLs = [];
@@ -398,8 +399,8 @@ const isInternalURL = (url, domain) => {
   return (url.match(urlFormat) !== null);
 }
 
-const getLastUpdatedDate = async (page) => {
-  const lastUpdatedText = await page.$eval('#lastUpdatedText', node => node.innerHTML)
+const getLastUpdatedDate = async (page, selector) => {
+  const lastUpdatedText = await page.$eval(selector, node => node.innerHTML)
     .catch(err => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
       return null;
@@ -576,7 +577,7 @@ const getPageInformation = async (page, url) => {
       return null;
     });
 
-  const lastUpdatedText = await getLastUpdatedDate(page);
+  const lastUpdatedText = await getLastUpdatedDate(page, configuration.lastUpdatedTextSelector);
 
   let obj = {
     url: url,
