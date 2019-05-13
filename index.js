@@ -183,7 +183,10 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
   await page.goto(url).catch((err) => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-    errorLogs.push(`${url}: ${err}`);
+    errorLogs.push({
+      url: url,
+      error: err
+    });
   });
   console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
 
@@ -238,7 +241,10 @@ const crawlAllURLs = async (url, browser) => {
         console.log(`${chalk.bgRed('ERROR:')} ${err}`);
         isBrokenURL = true;
         testResponseError = true;
-        errorLogs.push(`${url}: ${err}`);
+        errorLogs.push({
+          url: url,
+          error: err
+        });
       });
       if (!testResponseError) {
         await testPage.waitFor(1000);
@@ -552,11 +558,19 @@ const getPagesWithIframes = async (page, url) => {
 const getPageInformation = async (page, url) => {
   const title = await page.title().catch(err => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push({
+      url: url,
+      error: err
+    });
   });
 
   const description = await page.$eval('meta[name="description"]', node => node.attributes.content.value)
     .catch(err => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      errorLogs.push({
+        url: url,
+        error: err
+      });
       return null;
     });
 
