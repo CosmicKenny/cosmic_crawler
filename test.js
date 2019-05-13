@@ -1,7 +1,7 @@
 const puppeteer = require('puppeteer');
 const chalk = require('chalk');
 
-const url = 'https://www.cpf.gov.sg/eSvc/Web/Schemes/CpfHousingWithdrawalLimits/CpfHousingWithdrawalLimits';
+const url = 'https://www.cpf.gov.sg/Members/Tools/';
 
 (async () => {
   const browser = await puppeteer.launch();
@@ -9,6 +9,18 @@ const url = 'https://www.cpf.gov.sg/eSvc/Web/Schemes/CpfHousingWithdrawalLimits/
   const page = await browser.newPage();
 
   await page.goto(url);
+
+  const title = await page.title();
+
+  console.log(title);
+
+  const description = await page.$eval('meta[name="description"]', node => node.attributes.content.value)
+  .catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    return null;
+  });
+
+  console.log(description);
 
   const lastUpdatedText = await getLastUpdatedDate(page);
 

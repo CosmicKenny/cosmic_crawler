@@ -14,7 +14,7 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.cpf.gov.sg/',
+  entryUrl: 'https://www.cpf.gov.sg/employers/',
   domain: 'www.cpf.gov.sg',
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
@@ -181,7 +181,9 @@ const crawlAllURLs = async (url, browser) => {
   };
 
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
-  await page.goto(url).catch((err) => {
+  await page.goto(url, {
+    timeout: 60000
+  }).catch((err) => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
