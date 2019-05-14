@@ -20,7 +20,13 @@ const jsonToCsv = (file, fields, reportName, unwind = null) => {
 
     console.log(JSON.parse(data));
 
-    const csv = parser.parse(JSON.parse(data));
+    let csv;
+
+    if (unwind) {
+      csv = parser.parse(JSON.parse(`{"${unwind}": ${data}}`));
+    } else {
+      csv = parser.parse(JSON.parse(data));
+    }
 
     fs.writeFile(reportName, csv, (err, data2) => {
       if (err) console.log(err);
