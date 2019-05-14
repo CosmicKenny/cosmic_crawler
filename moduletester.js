@@ -1,3 +1,8 @@
-const jsonToCsv = require('./jsonToCsv.js');
+ wcagTester = require('./wcagTester.js');
 
-jsonToCsv.jsonToCsv('reports/crawledPages.json', ['url', 'title', 'description', 'lastUpdateText'], 'reports/crawledPages.csv');
+(async () => {
+  const tester = await wcagTester.wcagTester('https://www.silversupport.gov.sg/', 'reports/wcag', '0')
+    .catch(err => {
+      console.log(err);
+    });
+})();

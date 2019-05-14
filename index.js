@@ -14,17 +14,17 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.areyouready.sg/',
-  domain: 'www.areyouready.sg',
+  entryUrl: 'https://www.silversupport.gov.sg/',
+  domain: 'www.silversupport.gov.sg',
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
-  checkBrokenLink: true,
-  detectFileLink: true,
-  checkImageExist: true,
-  checkVideoExist: true,
-  checkIframeExist: true,
+  checkBrokenLink: false,
+  detectFileLink: false,
+  checkImageExist: false,
+  checkVideoExist: false,
+  checkIframeExist: false,
   detectExternalResource: false,
-  savePageInfo: true,
+  savePageInfo: false,
   scanWCAG: true,
   validateHTML: true,
   takeScreenshot: false,
@@ -174,7 +174,6 @@ const entryUrl = configuration.entryUrl;
 
 const crawlAllURLs = async (url, browser) => {
   let page = await browser.newPage();
-  await page.waitFor(configuration.pageWaitTime);
 
   let filesInfo = {
     source: url,
@@ -191,6 +190,9 @@ const crawlAllURLs = async (url, browser) => {
       error: err
     });
   });
+  console.log(`${chalk.magentaBright('Holding on:')} ${url}`);
+  await page.waitFor(configuration.pageWaitTime);
+  console.log(`Continue after ${configuration.pageWaitTime / 1000}s on ${url}`);
   console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
 
   console.log(`${chalk.cyan('Parsing all links in:')} ${url}...`);
@@ -343,7 +345,14 @@ const crawlAllURLs = async (url, browser) => {
   let index = crawledURLs.indexOf(url);
   if (configuration.scanWCAG) {
     console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
-    await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}.html`, `${index}.jpg`);
+    await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}`)
+      .catch(err => {
+        console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+        errorLogs.push({
+          url: url,
+          error: err
+        });
+      });
     console.log(`${chalk.bgMagenta('Finished scanning WCAG for:')} ${url}`);
   }
 
