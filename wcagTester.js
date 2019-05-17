@@ -13,6 +13,7 @@ const test = async (url, storage, reportName) => {
   */
   const results = await pa11y(url, {
     wait: 1000,
+    timeout: 60000,
     screenCapture: `${storage}/${reportName}.jpg`
   });
   const htmlResults = await htmlReporter.results(results);

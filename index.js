@@ -14,17 +14,17 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.silversupport.gov.sg/',
-  domain: 'www.silversupport.gov.sg',
+  entryUrl: 'https://www.areyouready.sg/',
+  domain: 'www.areyouready.sg',
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
-  checkBrokenLink: false,
-  detectFileLink: false,
-  checkImageExist: false,
-  checkVideoExist: false,
-  checkIframeExist: false,
+  checkBrokenLink: true,
+  detectFileLink: true,
+  checkImageExist: true,
+  checkVideoExist: true,
+  checkIframeExist: true,
   detectExternalResource: false,
-  savePageInfo: false,
+  savePageInfo: true,
   scanWCAG: true,
   validateHTML: true,
   takeScreenshot: false,
