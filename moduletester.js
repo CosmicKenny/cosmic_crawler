@@ -11,5 +11,5 @@ const jsonToCsv = require('./jsonToCsv.js');
 
 
 jsonToCsv.jsonToCsv('reports/crawledURLs.json', ['url'], 'reports/crawledURLs.csv', 'url');
-jsonToCsv.jsonToCsv('reports/crawledPages.json', ['url', 'title', 'description', 'lastUpdatedText'], 'reports/crawledURLs.csv');
+jsonToCsv.jsonToCsv('reports/crawledPages.json', ['url', 'title', 'description', 'lastUpdatedText'], 'reports/crawledPages.csv');
 jsonToCsv.jsonToCsv('reports/brokenLinks.json', ['source', 'url', 'code'], 'reports/brokenLinks.csv');
