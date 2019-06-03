@@ -5,9 +5,11 @@ const chalk = require('chalk');
   - blueBright: link or file path
   - bgMagenta: custom plugin
  */
+const util = require('util');
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
+const readFile = util.promisify(fs.readFile);
 const queue = require('queue');
 const jsonMerger = require('./jsonMerger.js');
 const wcagTester = require('./wcagTester.js');
@@ -19,18 +21,21 @@ const configuration = {
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
   checkBrokenLink: false,
-  detectFileLink: false,
-  checkImageExist: false,
+  detectFileLink: true,
+  checkImageExist: true,
   checkVideoExist: false,
-  checkIframeExist: false,
+  checkIframeExist: true,
   detectExternalResource: false,
-  savePageInfo: false,
-  scanWCAG: true,
+  savePageInfo: true,
+  scanWCAG: false,
   validateHTML: false,
   takeScreenshot: false,
   reportsFolderPath: 'reports',
-  lastUpdatedTextSelector: '.last-updated-date'
+  lastUpdatedTextSelector: '.last-updated-date',
+  sourceOfURLs: './src/sourceOfUrls.json'  // provide path to the URLs.json
 }
+
+let urlSource = [];
 
 let crawledURLs = [];
 let crawledPages = [];
@@ -64,8 +69,27 @@ const entryUrl = configuration.entryUrl;
   const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
-  crawledURLs.push(entryUrl);
-  await crawlAllURLs(entryUrl, browser);
+  if (configuration.sourceOfURLs !== null) {
+    const sourceOfURLs = await readFile(configuration.sourceOfURLs).catch((err) => {
+      console.log(err);
+    });
+
+    urlSource = JSON.parse(sourceOfURLs);
+
+    for (let i = 0; i < urlSource.length; i++) {
+      if (configuration.debug) {
+        if (i >= 15) break;
+      }
+
+      q.push(async cb => {
+        await crawlAllURLs(urlSource[i], browser);
+      });
+    };
+
+  } else {
+    crawledURLs.push(entryUrl);
+    await crawlAllURLs(entryUrl, browser);
+  }
 
   q.start(async (err) => {
     if (err) console.log(`Queue start error: ${err}`);
@@ -279,17 +303,20 @@ const crawlAllURLs = async (url, browser) => {
       }
     }
 
-    /* TO FIX: have to continue even if it's 403 code */
-    /* validate URL format */
-    if (isInternalURL(cleanUrl, domainName) && !isFileLink(cleanUrl)) {
-      console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
-      crawledURLs.push(cleanUrl);
+    /* To continue crawl the found links if the source of URLs is not provided */
+    if (configuration.sourceOfURLs === null) {
+      /* TO FIX: have to continue even if it's 403 code */
+      /* validate URL format */
+      if (isInternalURL(cleanUrl, domainName) && !isFileLink(cleanUrl)) {
+        console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
+        crawledURLs.push(cleanUrl);
 
-      /* queue crawling new URL*/
-      q.push(async (cb) => {
-        await crawlAllURLs(cleanUrl, browser);
-        cb();
-      });
+        /* queue crawling new URL*/
+        q.push(async (cb) => {
+          await crawlAllURLs(cleanUrl, browser);
+          cb();
+        });
+      }
     }
 
   }
