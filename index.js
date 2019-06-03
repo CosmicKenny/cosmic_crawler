@@ -14,22 +14,22 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = {
-  entryUrl: 'https://www.areyouready.sg/',
-  domain: 'www.areyouready.sg',
+  entryUrl: 'https://www.ica.gov.sg/',
+  domain: 'www.ica.gov.sg',
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
-  checkBrokenLink: true,
-  detectFileLink: true,
-  checkImageExist: true,
-  checkVideoExist: true,
-  checkIframeExist: true,
+  checkBrokenLink: false,
+  detectFileLink: false,
+  checkImageExist: false,
+  checkVideoExist: false,
+  checkIframeExist: false,
   detectExternalResource: false,
-  savePageInfo: true,
+  savePageInfo: false,
   scanWCAG: true,
-  validateHTML: true,
+  validateHTML: false,
   takeScreenshot: false,
   reportsFolderPath: 'reports',
-  lastUpdatedTextSelector: '#lastUpdatedText'
+  lastUpdatedTextSelector: '.last-updated-date'
 }
 
 let crawledURLs = [];
@@ -398,7 +398,7 @@ const isFileLink = (url) => {
   - should only start with http:// or https://
   - should end with .{ext} or .{ext}?xxx, where ext = pdf, jpg, jpeg, png, xls, xlsx, doc, docx
   */
-  const urlFormat = /^http(s)?:\/\/.+(\.(pdf|jpe?g|png|xlsx?|docx?)(\?.*)?){1}$/;
+  const urlFormat = /^http(s)?:\/\/.+(\.(pdf|jpe?g|png|xlsx?|docx?|mp3|mp4)(\?.*)?){1}$/;
   return (url.match(urlFormat) !== null);
 };
 
@@ -521,7 +521,7 @@ const getPagesWithVideos = async (page, url) => {
 
   if ($videos.length > 0) {
 
-    const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
+    const videos = await page.$$eval('video', vids => vids.map(vid => vid.querySelector('source').src));
 
     if (videos.length > 0) {
       let obj = {
@@ -617,7 +617,7 @@ const takeScreenshot = async (page) => {
     height: dimensions.height
   });
   await page.screenshot({
-    path: `${resultsFolder}/${globalIndex}.jpg`
+    path: `${resultsFolder}/screenshots/${globalIndex}.jpg`
   });
   globalIndex++;
   console.log('Screenshot is saved.');
