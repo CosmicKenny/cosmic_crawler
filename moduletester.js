@@ -41,5 +41,7 @@ const htmlValidator = require('./htmlValidate');
   let HTML = await page.content();
   await htmlValidator.htmlValidate(url, HTML, `reports/html-validate`, '426');
   console.log('Completed');
+  await page.close();
+  await browser.close();
 })();
 /* End: Test html validator */
