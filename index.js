@@ -21,14 +21,14 @@ const configuration = {
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
   checkBrokenLink: false,
-  detectFileLink: true,
-  checkImageExist: true,
+  detectFileLink: false,
+  checkImageExist: false,
   checkVideoExist: false,
-  checkIframeExist: true,
+  checkIframeExist: false,
   detectExternalResource: false,
-  savePageInfo: true,
+  savePageInfo: false,
   scanWCAG: false,
-  validateHTML: false,
+  validateHTML: true,
   takeScreenshot: false,
   reportsFolderPath: 'reports',
   lastUpdatedTextSelector: '.last-updated-date',
@@ -347,7 +347,12 @@ const crawlAllURLs = async (url, browser) => {
 
   if (configuration.checkVideoExist) {
     console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-    await getPagesWithVideos(page, url);
+    await getPagesWithVideos(page, url).catch(err => {
+      errorLogs.push({
+        url: url,
+        error: err
+      });
+    });
     console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
   }
 
@@ -369,7 +374,11 @@ const crawlAllURLs = async (url, browser) => {
     console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
   }
 
+
   let index = crawledURLs.indexOf(url);
+  if (configuration.sourceOfURLs !== null) {
+    index = urlSource.indexOf(url);
+  }
   if (configuration.scanWCAG) {
     console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
     await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}`)
