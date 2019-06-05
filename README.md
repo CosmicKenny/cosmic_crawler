@@ -2,6 +2,7 @@
 ## Features
 - Crawl through entire website
 - Store crawled URLs
+- Inspect page from given URLs
 - Store page information
 	- page title
 	- meta description
