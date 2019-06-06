@@ -34,11 +34,22 @@
 ## Crawling
 1. in **index.js**, update the `configuration`
 ```
-const configuration: {
+const configuration = {
 	entryUrl: 'https://domain.com/xxx',
-	domain: 'domain.com'
+	domain: 'domain.com',
+  sourceOfURLs: null
 }
 ```
+2. run `node index.js`
+
+## Inspect pages from given URLs
+1. in **index.js**, update the `configuration`
+```
+const configuration = {
+  sourceOfURLs: 'path/to/source.json'
+};
+```
+
 2. run `node index.js`
 
 ## Generate CSV
