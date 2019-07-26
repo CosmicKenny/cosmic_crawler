@@ -15,28 +15,9 @@ const jsonMerger = require('./jsonMerger.js');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
-const configuration = {
-  entryUrl: 'https://www.ica.gov.sg/',
-  domain: 'www.ica.gov.sg',
-  pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
-  debug: false,
-  checkBrokenLink: false,
-  detectFileLink: false,
-  checkImageExist: false,
-  checkVideoExist: false,
-  checkIframeExist: false,
-  detectExternalResource: false,
-  savePageInfo: false,
-  scanWCAG: false,
-  validateHTML: true,
-  takeScreenshot: false,
-  reportsFolderPath: 'reports',
-  lastUpdatedTextSelector: '.last-updated-date',
-  sourceOfURLs: './src/sourceOfUrls.json'  // provide path to the URLs.json
-}
+const configuration = require('./config.js');
 
 let urlSource = [];
-
 let crawledURLs = [];
 let crawledPages = [];
 let testedPages = [];
@@ -69,12 +50,12 @@ const entryUrl = configuration.entryUrl;
   const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
-  if (configuration.sourceOfURLs !== null) {
-    const sourceOfURLs = await readFile(configuration.sourceOfURLs).catch((err) => {
+  if (configuration.urlsSource !== null) {
+    const urlsSource = await readFile(configuration.urlsSource).catch((err) => {
       console.log(err);
     });
 
-    urlSource = JSON.parse(sourceOfURLs);
+    urlSource = JSON.parse(urlsSource);
 
     for (let i = 0; i < urlSource.length; i++) {
       if (configuration.debug) {
@@ -102,11 +83,13 @@ const entryUrl = configuration.entryUrl;
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
     });
 
-    fs.writeFile(`${resultsFolder}/crawledPages.json`, JSON.stringify(crawledPages), (err, data) => {
-      if (err) console.log(err);
+    if (configuration.savePageInfo) {
+      fs.writeFile(`${resultsFolder}/crawledPages.json`, JSON.stringify(crawledPages), (err, data) => {
+        if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledPages.json`)} is saved.`);
-    });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledPages.json`)} is saved.`);
+      });
+    }
 
     fs.writeFile(`${resultsFolder}/invalidURLs.json`, JSON.stringify(invalidURLs), (err, data) => {
       if (err) console.log(err);
@@ -115,7 +98,16 @@ const entryUrl = configuration.entryUrl;
     });
 
     if (configuration.checkIframeExist) {
-      fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(pagesWithIframes), (err, data) => {
+      let items = [];
+      pagesWithIframes.map(item => {
+        item.iframes.map(iframe => {
+          items.push({
+            pageUrl: item.pageUrl,
+            iframe: iframe
+          });
+        });
+      });
+      fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(items), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithIframes.json`)} is saved.`);
@@ -123,7 +115,16 @@ const entryUrl = configuration.entryUrl;
     }
 
     if (configuration.checkImageExist) {
-      fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(pagesWithImages), (err, data) => {
+      let items = [];
+      pagesWithImages.map(item => {
+        item.images.map(image => {
+          items.push({
+            pageUrl: item.pageUrl,
+            image: image
+          });
+        });
+      });
+      fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(items), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithImages.json`)} is saved.`);
@@ -139,7 +140,16 @@ const entryUrl = configuration.entryUrl;
     }
 
     if (configuration.checkVideoExist) {
-      fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(pagesWithVideos), (err, data) => {
+      let items = [];
+      pagesWithVideos.map(item => {
+        item.videos.map(video => {
+          items.push({
+            pageUrl: item.pageUrl,
+            video: video
+          });
+        });
+      });
+      fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(items), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
@@ -211,7 +221,7 @@ const crawlAllURLs = async (url, browser) => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
-      error: err
+      error: JSON.stringify(err)
     });
   });
   console.log(`${chalk.magentaBright('Holding on:')} ${url}`);
@@ -304,7 +314,7 @@ const crawlAllURLs = async (url, browser) => {
     }
 
     /* To continue crawl the found links if the source of URLs is not provided */
-    if (configuration.sourceOfURLs === null) {
+    if (configuration.urlsSource === null) {
       /* TO FIX: have to continue even if it's 403 code */
       /* validate URL format */
       if (isInternalURL(cleanUrl, domainName) && !isFileLink(cleanUrl)) {
@@ -376,7 +386,7 @@ const crawlAllURLs = async (url, browser) => {
 
 
   let index = crawledURLs.indexOf(url);
-  if (configuration.sourceOfURLs !== null) {
+  if (configuration.urlsSource !== null) {
     index = urlSource.indexOf(url);
   }
   if (configuration.scanWCAG) {
@@ -554,16 +564,17 @@ const getPagesWithExternalVideos = async (page, url, domain) => {
 
 const getPagesWithVideos = async (page, url) => {
   let $videos = await page.$$('video');
+  let pageUrl = url;
 
   if ($videos.length > 0) {
 
     const videos = await page.$$eval('video', vids => vids.map(vid => vid.querySelector('source').src));
 
-    if (videos.length > 0) {
-      let obj = {
-        source: url,
+    if (videos.length) {
+      const obj = {
+        pageUrl: url,
         videos: videos
-      }
+      };
 
       pagesWithVideos.push(obj);
     }
@@ -574,29 +585,35 @@ const getPagesWithImages = async (page, url) => {
   let $images = await page.$$('img');
 
   if($images.length > 0) {
-    const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
 
-    if (images.length > 0) {
-      let obj = {
-        url: url,
+    const images = await page.$$eval('img', imgs => {
+      return imgs.map(img => img.src);
+    });
+
+    if (images.length) {
+      const obj = {
+        pageUrl: url,
         images: images
-      }
+      };
 
       pagesWithImages.push(obj);
     }
+
   }
 }
 
 const getPagesWithIframes = async (page, url) => {
   let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
+  let pageUrl = url;
 
   if ($iframes.length > 0) {
     const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
-    if (iframes.length > 0) {
-      let obj = {
-        url: url,
+
+    if (iframes.length) {
+      const obj = {
+        pageUrl: url,
         iframes: iframes
-      };
+      }
 
       pagesWithIframes.push(obj);
     }
@@ -613,14 +630,15 @@ const getPageInformation = async (page, url) => {
   });
 
   const description = await page.$eval('meta[name="description"]', node => node.attributes.content.value)
-    .catch(err => {
-      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-      errorLogs.push({
-        url: url,
-        error: err
-      });
-      return null;
+  .catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push({
+      url: url,
+      error: err
     });
+    return null;
+  });
+
 
   const lastUpdatedText = await getLastUpdatedDate(page, configuration.lastUpdatedTextSelector);
 
@@ -628,7 +646,7 @@ const getPageInformation = async (page, url) => {
     url: url,
     title: title,
     description: description,
-    lastUpdateText: lastUpdatedText
+    lastUpdatedText: lastUpdatedText
   }
 
   crawledPages.push(obj);
