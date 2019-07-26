@@ -132,7 +132,16 @@ const entryUrl = configuration.entryUrl;
     }
 
     if (configuration.detectFileLink) {
-      fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(pagesWithFiles), (err, data) => {
+      let items = [];
+      pagesWithFiles.map(item => {
+        item.images.map(image => {
+          items.push({
+            pageUrl: item.pageUrl,
+            files: image
+          });
+        });
+      });
+      fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(items), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithFiles.json`)} is saved.`);
@@ -210,7 +219,7 @@ const crawlAllURLs = async (url, browser) => {
   let page = await browser.newPage();
 
   let filesInfo = {
-    source: url,
+    pageUrl: url,
     files: []
   };
 
@@ -340,7 +349,10 @@ const crawlAllURLs = async (url, browser) => {
   }
 
   if (configuration.detectFileLink) {
-    pagesWithFiles.push(filesInfo);
+    console.log(`${chalk.bgYellow('NO OF FILES::')} ${filesInfo.files.length}`);
+    if (filesInfo.files.length) {
+      pagesWithFiles.push(filesInfo);
+    }
   }
 
   if (configuration.checkIframeExist) {

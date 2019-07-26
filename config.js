@@ -4,10 +4,10 @@ module.exports = {
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   debug: false,
   checkBrokenLink: false,
-  detectFileLink: false,
+  detectFileLink: true,
   checkImageExist: true,
-  checkVideoExist: false,
-  checkIframeExist: false,
+  checkVideoExist: true,
+  checkIframeExist: true,
   detectExternalResource: false,
   savePageInfo: false,
   scanWCAG: false,
