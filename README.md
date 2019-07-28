@@ -3,7 +3,8 @@
 - Crawl through entire website
 - Store crawled URLs
 - Inspect page from given URLs
-- Store page information
+- Check broken links
+- Retrieve page information
 	- page title
 	- meta description
 	- latest updated date
@@ -11,13 +12,14 @@
 	- iframe
 	- image
 	- video
-- detect page with
+- Detect page with
 	- iframe
 	- image
 	- video
-- detect all non-HTML document
-- scan WCAG and generate report using [Pa11y](https://github.com/pa11y/pa11y)
-- validate HTML using [W3C validator](https://validator.w3.org/)
+- Detect all non-HTML document
+  - format: .pdf, .jp(e)g, .png, .xls(x), .doc(x), .mp3, .mp4
+- Scan WCAG and generate report using [Pa11y](https://github.com/pa11y/pa11y)
+- Validate HTML using [W3C validator](https://validator.w3.org/)
 - URL redirection verification
 
 ## System Requirement
@@ -51,7 +53,6 @@ const configuration = {
 ```javascript
 ["https://www.example.com", "https://example.com", //...]
 ```
-
 
 ## Redirection verification
 - To verify if all the URL redirection is correctly done
