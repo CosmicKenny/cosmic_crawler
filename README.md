@@ -16,6 +16,9 @@
 	- iframe
 	- image
 	- video
+- Check if oversize / overcompressed image being used
+  - oversize when intrinsic size (width * height) of image 10% larger than rendered size
+  - overcompressed when intrinsic size (width * height) of image 10% smaller than rendered size
 - Detect all non-HTML document
   - format: .pdf, .jp(e)g, .png, .xls(x), .doc(x), .mp3, .mp4
 - Scan WCAG and generate report using [Pa11y](https://github.com/pa11y/pa11y)

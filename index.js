@@ -119,9 +119,16 @@ const entryUrl = configuration.entryUrl;
       let items = [];
       pagesWithImages.map(item => {
         item.images.map(image => {
+          let { src, naturalWidth, naturalHeight, width, height, oversize, overcompressed} = image;
           items.push({
             pageUrl: item.pageUrl,
-            image: image
+            src,
+            naturalWidth,
+            naturalHeight,
+            width,
+            height,
+            oversize,
+            overcompressed
           });
         });
       });
@@ -218,6 +225,8 @@ const entryUrl = configuration.entryUrl;
 
 const crawlAllURLs = async (url, browser) => {
   let page = await browser.newPage();
+
+  await page.setViewport(configuration.viewportSize);
 
   let filesInfo = {
     pageUrl: url,
@@ -606,7 +615,17 @@ const getPagesWithImages = async (page, url) => {
   if($images.length > 0) {
 
     const images = await page.$$eval('img', imgs => {
-      return imgs.map(img => img.src);
+      return imgs.map(img => {
+        return {
+          src: img.src,
+          naturalWidth: img.naturalWidth,
+          naturalHeight: img.naturalHeight,
+          width: img.width,
+          height: img.height,
+          oversize: ((img.naturalWidth * img.naturalHeight) > (img.width * img.height) * 1.1),
+          overcompressed: ((img.naturalWidth * img.naturalHeight) < (img.width * img.height) * 0.9)
+        }
+      });
     });
 
     if (images.length) {
