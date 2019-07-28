@@ -50,6 +50,7 @@ const entryUrl = configuration.entryUrl;
   const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
+  /* Read URL from given source */
   if (configuration.urlsSource !== null) {
     const urlsSource = await readFile(configuration.urlsSource).catch((err) => {
       console.log(err);
@@ -251,61 +252,68 @@ const crawlAllURLs = async (url, browser) => {
       }
     }
 
-    if (isFileLink(links[i])) {
-      console.log(`${chalk.yellow('Non HTML Link:')} ${links[i]}`);
+    /* remove # from last character of {url} */
+    let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
+
+    if (isFileLink(cleanUrl)) {
+      console.log(`${chalk.yellow('Non HTML Link:')} ${cleanUrl}`);
       if (configuration.detectFileLink) {
-        filesInfo.files.push(links[i]);
+        filesInfo.files.push(cleanUrl);
       }
     }
 
-    /* Check if the {links[i]} is valid URL format and non PDF file */
-    if (!isValidURL(links[i])) {
-      console.log(`${chalk.red('Invalid link:')} ${links[i]}`);
-      invalidURLs.push(links[i]);
+    /* Check if the {cleanUrl} is valid URL format and non PDF file */
+    if (!isValidURL(cleanUrl)) {
+      console.log(`${chalk.red('Invalid link:')} ${cleanUrl}`);
+      invalidURLs.push(cleanUrl);
       continue;
     }
-
-    /* remove # from last character of {url} */
-    let cleanUrl = (links[i].slice(-1) == '#') ? links[i].slice(0, -1) : links[i];
 
     /* check if {cleanUrl} is crawled before */
     if (isCrawled(cleanUrl)) {
       continue;
     }
 
-    /* check if {cleanUrl} is tested before */
-    // if (isTested(cleanUrl)) {
-    //   continue;
-    // }
-
+    /* Check if {cleanUrl} is broken links */
     if (configuration.checkBrokenLink) {
-      /* Check for {cleanUrl} is broken links */
-      console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
-      const testPage = await browser.newPage();
-      console.log(`Test page created. Loading: ${cleanUrl}...`);
-      let isBrokenURL = false;
-      let testResponseError = false;
-      const testResponse = await testPage.goto(cleanUrl).catch(err => {
-        console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-        isBrokenURL = true;
-        testResponseError = true;
-        errorLogs.push({
-          url: url,
-          error: err
-        });
-      });
-      if (!testResponseError) {
-        await testPage.waitFor(1000);
-        isBrokenURL = (!testResponse.ok());
-      }
-      console.log(`Test page visiting: ${cleanUrl}`);
-      console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
+      /* Skip testing the link if it is tested before */
+      if (isTested(cleanUrl)) {
+        console.log(`${chalk.cyan('Checking tested URLs code:')} ${cleanUrl}`);
 
-      const testPageObj = {
-        source: url,
-        url: cleanUrl,
-        code: (testResponseError) ? null : testResponse.status()
-      };
+        const testPageObj = testedPages.find(page => {
+          return (page.url == cleanUrl)
+        });
+        testPageObj.url = url;
+      } else {
+        console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
+        const testPage = await browser.newPage();
+        console.log(`Test page created. Loading: ${cleanUrl}...`);
+        let isBrokenURL = false;
+        let testResponseError = false;
+        const testResponse = await testPage.goto(cleanUrl).catch(err => {
+          console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+          isBrokenURL = true;
+          testResponseError = true;
+          errorLogs.push({
+            action: 'Broken link checker',
+            url: url,
+            error: err
+          });
+        });
+        if (!testResponseError) {
+          /* TO FIX: what's this 1000 here for? */
+          await testPage.waitFor(1000);
+          isBrokenURL = (!testResponse.ok());
+        }
+        console.log(`Test page visiting: ${cleanUrl}`);
+        console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
+
+        const testPageObj = {
+          pageUrl: url,
+          url: cleanUrl,
+          code: (testResponseError) ? null : testResponse.status()
+        };
+      }
 
       if (testPageObj.code != 403) {
         /* the URL is considered tested only if it is not 403 */
@@ -337,7 +345,6 @@ const crawlAllURLs = async (url, browser) => {
         });
       }
     }
-
   }
   console.log(`${chalk.cyan('All links retrieved in')}: ${url}`);
 
