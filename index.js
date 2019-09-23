@@ -142,10 +142,10 @@ const entryUrl = configuration.entryUrl;
     if (configuration.detectFileLink) {
       let items = [];
       pagesWithFiles.map(item => {
-        item.images.map(image => {
+        item.files.map(file => {
           items.push({
             pageUrl: item.pageUrl,
-            files: image
+            files: file
           });
         });
       });
@@ -267,6 +267,7 @@ const crawlAllURLs = async (url, browser) => {
     if (isFileLink(cleanUrl)) {
       console.log(`${chalk.yellow('Non HTML Link:')} ${cleanUrl}`);
       if (configuration.detectFileLink) {
+        console.log(links[i]);
         filesInfo.files.push(cleanUrl);
       }
     }

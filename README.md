@@ -78,3 +78,7 @@ const configuration = {
     - Incorrect redirection will be marked as `matched: false`
 
 > Written with [StackEdit](https://stackedit.io/).
+
+
+## Future Work
+1. Currently, detecting non-HTML document feature is only checking if the `href` contain the file extension. Hence, it will not detect any **redirect link** or the `href` does not contain the file extension at all.
