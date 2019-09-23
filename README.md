@@ -36,6 +36,7 @@
       - wcag/
       - screenshots/
 2. run `npm install`
+3. **rename** `config-sample.js` to `config.js`.
 
 ## Crawling
 1. in **config.js**, update the `configuration`
