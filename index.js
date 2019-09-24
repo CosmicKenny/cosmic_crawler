@@ -479,7 +479,7 @@ const isFileLink = (url) => {
 
 const isInternalURL = (url, domain) => {
   /* URL should contain the domain name */
-  const urlFormat = new RegExp(`^http(s)?:\/\/${domainName}`);
+  const urlFormat = new RegExp(`^http(s)?:\/\/${domain}`);
   return (url.match(urlFormat) !== null);
 }
 
