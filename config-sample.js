@@ -20,7 +20,7 @@ module.exports = {
   reportsFolderPath: 'reports',
   lastUpdatedTextSelector: '.copyright > p:nth-child(2)',
   urlsSource: './src/exampleUrlsSource.json'  // provide path to the URLs.json
-  // sourceOfURLs: null  // provide path to the URLs.json
+  // urlsSource: null  // provide path to the URLs.json
 };
 
 
