@@ -83,3 +83,4 @@ const configuration = {
 
 ## Future Work
 1. Currently, detecting non-HTML document feature is only checking if the `href` contain the file extension. Hence, it will not detect any **redirect link** or the `href` does not contain the file extension at all.
+2. **Feature**: crawl and download all the assets and save as static files.
