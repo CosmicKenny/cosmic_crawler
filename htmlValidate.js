@@ -162,6 +162,7 @@ const htmlReport = (url, errorMessagesHtml) => {
       </ul>
     </div>
   </body>
+  </html>
   `
 
   return html;
