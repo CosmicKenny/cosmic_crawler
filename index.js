@@ -50,8 +50,8 @@ const entryUrl = configuration.entryUrl;
   const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
-  /* Read URL from given source */
   if (configuration.urlsSource !== null) {
+    /* Read URL from given source */
     const urlsSource = await readFile(configuration.urlsSource).catch((err) => {
       console.log(err);
     });
@@ -69,6 +69,7 @@ const entryUrl = configuration.entryUrl;
     };
 
   } else {
+    /* Start crawling from the entry URL */
     crawledURLs.push(entryUrl);
     await crawlAllURLs(entryUrl, browser);
   }
@@ -287,52 +288,75 @@ const crawlAllURLs = async (url, browser) => {
     /* Check if {cleanUrl} is broken links */
     if (configuration.checkBrokenLink) {
       /* Skip testing the link if it is tested before */
+      let testPageObj = {
+        pageUrl: url,
+        url: cleanUrl,
+        code: 200
+      };
+      let isBrokenURL = false;
+
       if (isTested(cleanUrl)) {
         console.log(`${chalk.cyan('Checking tested URLs code:')} ${cleanUrl}`);
 
-        const testPageObj = testedPages.find(page => {
+        testPageObj = testedPages.find(page => {
           return (page.url == cleanUrl)
         });
         testPageObj.url = url;
       } else {
         console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
-        const testPage = await browser.newPage();
-        console.log(`Test page created. Loading: ${cleanUrl}...`);
-        let isBrokenURL = false;
-        let testResponseError = false;
-        const testResponse = await testPage.goto(cleanUrl).catch(err => {
-          console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-          isBrokenURL = true;
-          testResponseError = true;
-          errorLogs.push({
-            action: 'Broken link checker',
-            url: url,
-            error: err
-          });
-        });
-        if (!testResponseError) {
-          /* TO FIX: what's this 1000 here for? */
-          await testPage.waitFor(1000);
-          isBrokenURL = (!testResponse.ok());
-        }
-        console.log(`Test page visiting: ${cleanUrl}`);
-        console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
+        // let testPageObj = {
+        //   pageUrl: url,
+        //   url: cleanUrl,
+        //   code: 200
+        // };
 
-        const testPageObj = {
-          pageUrl: url,
-          url: cleanUrl,
-          code: (testResponseError) ? null : testResponse.status()
-        };
+        // let isBrokenURL = false;
+        let testResponseError = false;
+        if (cleanUrl.indexOf('-admin.cwp') > -1) {
+          /* Check if the link contain CWP link (xxx-admin.cwp.sg or xxx-admin.cwp-stg.sg) */
+          console.log(`${chalk.redBg('ERROR:')} ${cleanUrl} contain ${chalk.yellow('-admin')} in the URL.`);
+          testResponseError = 4031; /* Special code by Kenny Saw, given to CWP admin */
+          isBrokenURL = true;
+        } else {
+          const testPage = await browser.newPage();
+          console.log(`Test page created. Loading: ${cleanUrl}...`);
+          isBrokenURL = false;
+          testResponseError = false;
+          const testResponse = await testPage.goto(cleanUrl).catch(err => {
+            console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+            isBrokenURL = true;
+            testResponseError = true;
+            errorLogs.push({
+              action: 'Broken link checker',
+              url: url,
+              error: err
+            });
+          });
+          if (!testResponseError) {
+            /* TO FIX: what's this 1000 here for? */
+            await testPage.waitFor(1000);
+            isBrokenURL = (!testResponse.ok());
+          } else {
+            testResponseError = testResponse.status();
+          }
+          console.log(`Test page visiting: ${cleanUrl}`);
+          console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
+
+          await testPage.close();
+          console.log(`Test page closed: ${cleanUrl}`);
+        }
+
+        console.log(`Completed tested ${cleanUrl}`);
+
+        testPageObj.code = testResponseError;
       }
 
       if (testPageObj.code != 403) {
         /* the URL is considered tested only if it is not 403 */
         testedURLs.push(cleanUrl);
         testedPages.push(testPageObj);
+        console.log(`${cleanUrl} is tested`);
       }
-
-      await testPage.close();
-      console.log(`Test page closed: ${cleanUrl}`);
 
       if (isBrokenURL && testPageObj.code != 403) {
         console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
