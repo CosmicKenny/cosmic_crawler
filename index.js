@@ -444,7 +444,7 @@ const crawlAllURLs = async (url, browser) => {
   }
   if (configuration.scanWCAG) {
     console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
-    await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index}`)
+    await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index + 1}`)
       .catch(err => {
         console.log(`${chalk.bgRed('ERROR:')} ${err}`);
         errorLogs.push({
@@ -459,7 +459,7 @@ const crawlAllURLs = async (url, browser) => {
     console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
     let HTML = await page.content();
     console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
-    await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index}`);
+    await htmlValidator.htmlValidate(url, HTML, `${resultsFolder}/html-validate`, `${index + 1}`);
     console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
   }
 
@@ -734,7 +734,7 @@ const takeScreenshot = async (page) => {
     height: dimensions.height
   });
   await page.screenshot({
-    path: `${resultsFolder}/screenshots/${globalIndex}.jpg`
+    path: `${resultsFolder}/screenshots/${globalIndex + 1}.jpg`
   });
   globalIndex++;
   console.log('Screenshot is saved.');
