@@ -146,7 +146,7 @@ const grabPageContent = async (config) => {
       error: err
     });
   });
-  contentObj['description'] = await page.$eval('.pagecontent_box description', div => div.innerHTML).catch(err => {
+  contentObj['description'] = await page.$eval('.pagecontent_box .description', div => div.innerHTML).catch(err => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
