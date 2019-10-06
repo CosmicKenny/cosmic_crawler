@@ -43,6 +43,7 @@ const resultsFolder = configuration.reportsFolderPath;
 
 const domainName = configuration.domain;
 const entryUrl = configuration.entryUrl;
+const urlPattern = configuration.urlPattern;
 
 /* setup crawler */
 (async() => {
@@ -250,7 +251,10 @@ const crawlAllURLs = async (url, browser) => {
   console.log(`${chalk.magentaBright('URL loaded:')} ${url}`);
 
   console.log(`${chalk.cyan('Parsing all links in:')} ${url}...`);
-  const links = await getAllLinks(page);
+  const links = await getAllLinks({
+    page,
+    urlPattern
+  });
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
 
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
@@ -740,8 +744,25 @@ const takeScreenshot = async (page) => {
   console.log('Screenshot is saved.');
 }
 
-const getAllLinks = async (page) => {
-  const links = await page.$$eval('a', as => as.map(a => a.href));
+const getAllLinks = async (config) => {
+  const { page, urlPattern } = config;
+  let links;
+  if (urlPattern !== null) {
+    /* only get URL that contain the pattern of {domainName}/{pattern} */
+    links = await page.$$eval('a', (as, args) => {
+      let regex = new RegExp(`^http(s)?:\/\/${domainName}\/${urlPattern.replace(/\//g, '\\/')}`);
+      return as.filter(a => {
+        return (a.href.match(regex) !== null);
+      }).map(a => {
+        return a.href;
+      });
+    }, { domainName, urlPattern }).catch(err => {
+      console.log(`${chalk.red('Crawling error:')} ${err}`);
+    });
+
+  } else {
+    links = await page.$$eval('a', as => as.map(a => a.href));
+  }
 
   return links;
 }

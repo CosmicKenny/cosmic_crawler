@@ -1,6 +1,7 @@
 # Node Crawler
 ## Features
 - Crawl through entire website
+- Crawl only filtered URL based on the URL pattern
 - Store crawled URLs
 - Inspect page from given URLs
 - Check broken links
@@ -51,9 +52,10 @@ const configuration = {
 
 ## Inspect pages from given URLs
 1. in **index.js**, update the `configuration`
-    - `urlsSource` (*string*): File path to the source of the URLs to be crawled
+    - `urlPattern` (*string* || `null`): if not `null`, only pages with URL that start with `urlPattern` will be crawled
+    - `urlsSource` (*string* || `null`): File path to the source of the URLs to be crawled
 2. run `node index.js`
-**Note**: the `urlsSource.json` should be an array of links
+**Note**: the **urlsSource.json** should be an array of URLs or `null`.
 ```javascript
 ["https://www.example.com", "https://example.com", //...]
 ```
