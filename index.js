@@ -750,6 +750,7 @@ const getAllLinks = async (config) => {
   if (urlPattern !== null) {
     /* only get URL that contain the pattern of {domainName}/{pattern} */
     links = await page.$$eval('a', (as, args) => {
+      let { domainName, urlPattern } = args;
       let regex = new RegExp(`^http(s)?:\/\/${domainName}\/${urlPattern.replace(/\//g, '\\/')}`);
       return as.filter(a => {
         return (a.href.match(regex) !== null);
