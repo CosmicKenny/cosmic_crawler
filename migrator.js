@@ -46,6 +46,12 @@ let contents = [];
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/contents.json`)} is saved.`);
     });
 
+    fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
+      if (err) console.log(err);
+
+      console.log(`${chalk.underline.blueBright(`${resultsFolder}/errorLogs.json`)} is saved.`);
+    });
+
     await browser.close();
     console.log(chalk.green('Browser closed'));
   });
@@ -129,6 +135,7 @@ const grabPageContent = async (config) => {
 
   // =============================================
   /* Start copying content */
+  let index = crawledURLs.indexOf(url);
   let contentObj = {};
 
   contentObj['url'] = url;
@@ -146,13 +153,24 @@ const grabPageContent = async (config) => {
       error: err
     });
   });
-  contentObj['description'] = await page.$eval('.pagecontent_box .description', div => div.innerHTML).catch(err => {
+  let description = '';
+  description += await page.$eval('.pagecontent_box .description', div => div.innerHTML).catch(err => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
       error: err
     });
   });
+
+  let otherDescriptions = await page.$$eval('.pageblock_box .ive_content', divs => divs.map(div => div.innerHTML)).catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push({
+      url: url,
+      error: err
+    });
+  });
+
+  contentObj['description'] = description += otherDescriptions.join();
 
   contents.push(contentObj);
 
