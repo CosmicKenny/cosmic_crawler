@@ -153,8 +153,16 @@ const grabPageContent = async (config) => {
       error: err
     });
   });
-  let description = '';
-  description += await page.$eval('.pagecontent_box .description', div => div.innerHTML).catch(err => {
+
+  // let description = await page.$eval('.pagecontent_box .description', div => div.innerHTML).catch(err => {
+  //   console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+  //   errorLogs.push({
+  //     url: url,
+  //     error: err
+  //   });
+  // });
+
+  let descriptions = await page.$$eval('.pagecontent_box .description, .pageblock_box .ive_content', divs => divs.map(div => div.innerHTML)).catch(err => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
@@ -162,15 +170,9 @@ const grabPageContent = async (config) => {
     });
   });
 
-  let otherDescriptions = await page.$$eval('.pageblock_box .ive_content', divs => divs.map(div => div.innerHTML)).catch(err => {
-    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-    errorLogs.push({
-      url: url,
-      error: err
-    });
-  });
+  contentObj['description'] = descriptions.join();
 
-  contentObj['description'] = description += otherDescriptions.join();
+  console.log(contentObj['description']);
 
   contents.push(contentObj);
 
