@@ -299,14 +299,13 @@ const crawlAllURLs = async (url, browser) => {
       };
       let isBrokenURL = false;
 
-      if (isTested(cleanUrl)) {
-        console.log(`${chalk.cyan('Checking tested URLs code:')} ${cleanUrl}`);
-
-        testPageObj = testedPages.find(page => {
-          return (page.url == cleanUrl)
-        });
-        testPageObj.url = url;
-      } else {
+      if (!isTested(cleanUrl)) {
+        // console.log(`${chalk.cyan('Checking tested URLs code:')} ${cleanUrl}`);
+        // testPageObj = testedPages.find(page => {
+        //   return (page.url == cleanUrl)
+        // });
+        // testPageObj.url = cleanUrl;
+      // } else {
         console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
         // let testPageObj = {
         //   pageUrl: url,
@@ -314,7 +313,6 @@ const crawlAllURLs = async (url, browser) => {
         //   code: 200
         // };
 
-        // let isBrokenURL = false;
         let testResponseError = false;
         if (cleanUrl.indexOf('-admin.cwp') > -1) {
           /* Check if the link contain CWP link (xxx-admin.cwp.sg or xxx-admin.cwp-stg.sg) */
@@ -324,8 +322,8 @@ const crawlAllURLs = async (url, browser) => {
         } else {
           const testPage = await browser.newPage();
           console.log(`Test page created. Loading: ${cleanUrl}...`);
-          isBrokenURL = false;
-          testResponseError = false;
+          // isBrokenURL = false;
+          // testResponseError = false;
           const testResponse = await testPage.goto(cleanUrl).catch(err => {
             console.log(`${chalk.bgRed('ERROR:')} ${err}`);
             isBrokenURL = true;
