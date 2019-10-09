@@ -48,6 +48,8 @@ const urlPattern = configuration.urlPattern;
 /* setup crawler */
 (async() => {
 
+  setup();
+
   const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
@@ -764,4 +766,26 @@ const getAllLinks = async (config) => {
   }
 
   return links;
+}
+
+const createFolder = (folderName) => {
+  if (!fs.existsSync(folderName)) {
+    console.log(`${folderName} folder not found. Creating new folder...`)
+    fs.mkdirSync(folderName);
+    console.log(`${folderName} folder is created.`);
+  }
+}
+
+const setup = () => {
+  if (configuration.scanWCAG) {
+    createFolder(`${resultsFolder}/wcag`);
+  }
+
+  if (configuration.validateHTML) {
+    createFolder(`${resultsFolder}/html-validate`);
+  }
+
+  if (configuration.takeScreenshot) {
+    createFolder(`${resultsFolder}/screenshots`);
+  }
 }
