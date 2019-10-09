@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const readFile = util.promisify(fs.readFile);
 const queue = require('queue');
+const request = require('request');
 
 const configuration = require('./config.js');
 
@@ -61,7 +62,16 @@ let contents = [];
 const grabPageContent = async (config) => {
   const { url, browser, urlPattern } = config;
 
-  const page = await browser.newPage();
+  const imgFolder = `${resultsFolder}/images`;
+  createFolder(imgFolder);
+
+  const page = await browser.newPage().catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push({
+      url: url,
+      error: JSON.stringify(err)
+    });
+  });
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
 
   await page.goto(url, {
@@ -138,6 +148,11 @@ const grabPageContent = async (config) => {
   let index = crawledURLs.indexOf(url);
   let contentObj = {};
 
+  let dir = `${resultsFolder}/images/${index + 1}`;
+
+  /* Create folder for this URL index */
+  createFolder(dir);
+
   contentObj['url'] = url;
   contentObj['pageTitle'] = await page.title().catch(err => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
@@ -154,14 +169,6 @@ const grabPageContent = async (config) => {
     });
   });
 
-  // let description = await page.$eval('.pagecontent_box .description', div => div.innerHTML).catch(err => {
-  //   console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-  //   errorLogs.push({
-  //     url: url,
-  //     error: err
-  //   });
-  // });
-
   let descriptions = await page.$$eval('.pagecontent_box .description, .pageblock_box .ive_content', divs => divs.map(div => div.innerHTML)).catch(err => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
@@ -172,7 +179,36 @@ const grabPageContent = async (config) => {
 
   contentObj['description'] = descriptions.join();
 
-  console.log(contentObj['description']);
+  /*
+    Retrieve images from the carousel filmstrip
+    - find all the images in filmstrip
+    - get the image source of each filmstrip
+    - replace the format from xxx/.tn.${original-name}.jpg to xxx/${original-name}
+   */
+  let images = await page.$$eval('.gv_galleryWrap .gv_filmstrip img', imgs => imgs.map(img => img.src.replace('.tn.', '').replace(/\.jpg$/, '')))
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      errorLogs.push({
+        url: url,
+        error: err
+      });
+    });
+
+  console.log(images);
+
+  if (images) {
+    contentObj['gallery'] = images;
+
+    console.log(`${chalk.yellowBright('Found gallery images.')} Downloading images...`)
+    /* Save image */
+    images.map(img => {
+      let imageDirs = img.split('/');
+      let imageName = imageDirs[imageDirs.length - 1];
+      download(img, `${dir}/${imageName}`, () => {
+        console.log(`${chalk.blueBright(`${dir}/${imageName}`)} is saved.`);
+      });
+    });
+  }
 
   contents.push(contentObj);
 
@@ -235,3 +271,21 @@ const isInternalURL = (url, domain) => {
   const urlFormat = new RegExp(`^http(s)?:\/\/${domain}`);
   return (url.match(urlFormat) !== null);
 }
+
+const createFolder = (folderName) => {
+  if (!fs.existsSync(folderName)) {
+    console.log(`${folderName} folder not found. Creating new folder...`)
+    fs.mkdirSync(folderName);
+    console.log(`${folderName} folder is created.`);
+  }
+}
+
+const download = (uri, filename, callback) => {
+  request.head(uri, (err, res, body) => {
+    request(uri).pipe(fs.createWriteStream(filename))
+      .on('error', (errMsg) => {
+        console.log(errMsg);
+      })
+      .on('close', callback);
+  });
+};
