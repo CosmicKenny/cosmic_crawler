@@ -96,11 +96,13 @@ const setup = () => {
 
     console.log(chalk.green('Generating report...'));
 
-    fs.writeFile(`${resultsFolder}/crawledURLs.json`, JSON.stringify(crawledURLs), (err, data) => {
-      if (err) console.log(err);
+    if (configuration.urlsSource === null) {
+      fs.writeFile(`${resultsFolder}/crawledURLs.json`, JSON.stringify(crawledURLs), (err, data) => {
+        if (err) console.log(err);
 
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
-    });
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
+      });
+    }
 
     if (configuration.savePageInfo) {
       fs.writeFile(`${resultsFolder}/crawledPages.json`, JSON.stringify(crawledPages), (err, data) => {
@@ -330,17 +332,20 @@ const crawlAllURLs = async (url, browser) => {
         // };
 
         let testResponseError = false;
+        let testResponse;
         if (cleanUrl.indexOf('-admin.cwp') > -1) {
           /* Check if the link contain CWP link (xxx-admin.cwp.sg or xxx-admin.cwp-stg.sg) */
           console.log(`${chalk.redBg('ERROR:')} ${cleanUrl} contain ${chalk.yellow('-admin')} in the URL.`);
-          testResponseError = 4031; /* Special code by Kenny Saw, given to CWP admin */
+          testPageObj.code = 4031; /* Special code by Kenny Saw, given to CWP admin */
           isBrokenURL = true;
         } else {
           const testPage = await browser.newPage();
           console.log(`Test page created. Loading: ${cleanUrl}...`);
           // isBrokenURL = false;
           // testResponseError = false;
-          const testResponse = await testPage.goto(cleanUrl).catch(err => {
+          testResponse = await testPage.goto(cleanUrl, {
+            timeout: 60000
+          }).catch(err => {
             console.log(`${chalk.bgRed('ERROR:')} ${err}`);
             isBrokenURL = true;
             testResponseError = true;
@@ -354,8 +359,6 @@ const crawlAllURLs = async (url, browser) => {
             /* TO FIX: what's this 1000 here for? */
             await testPage.waitFor(1000);
             isBrokenURL = (!testResponse.ok());
-          } else {
-            testResponseError = testResponse.status();
           }
           console.log(`Test page visiting: ${cleanUrl}`);
           console.log(`${cleanUrl} is broken? ${chalk.yellow(isBrokenURL)}`);
@@ -366,19 +369,19 @@ const crawlAllURLs = async (url, browser) => {
 
         console.log(`Completed tested ${cleanUrl}`);
 
-        testPageObj.code = testResponseError;
-      }
+        testPageObj.code = (testResponseError) ? null : testResponse.status();
 
-      if (testPageObj.code != 403) {
-        /* the URL is considered tested only if it is not 403 */
-        testedURLs.push(cleanUrl);
-        testedPages.push(testPageObj);
-        console.log(`${cleanUrl} is tested`);
-      }
+        if (testPageObj.code != 403) {
+          /* the URL is considered tested only if it is not 403 */
+          testedURLs.push(cleanUrl);
+          testedPages.push(testPageObj);
+          console.log(`${cleanUrl} is tested`);
+        }
 
-      if (isBrokenURL && testPageObj.code != 403) {
-        console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
-        brokenURLs.push(testPageObj);
+        if (isBrokenURL && testPageObj.code != 403) {
+          console.log(`${chalk.red('Broken link:')} ${cleanUrl}`);
+          brokenURLs.push(testPageObj);
+        }
       }
     }
 
