@@ -21,6 +21,7 @@ let errorLogs = [];
 
 let crawledURLs = [];
 let contents = [];
+let invalidURLs = [];
 
 (async() => {
   const browser = await puppeteer.launch();
@@ -34,6 +35,7 @@ let contents = [];
   });
 
   q.start(async (err) => {
+    if (err) console.log(`Queue start error: ${err}`);
 
     fs.writeFile(`${resultsFolder}/crawledURLs.json`, JSON.stringify(crawledURLs), (err, data) => {
       if (err) console.log(err);
