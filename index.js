@@ -46,6 +46,20 @@ const entryUrl = configuration.entryUrl;
 const urlPattern = configuration.urlPattern;
 
 /* setup crawler */
+const setup = () => {
+  if (configuration.scanWCAG) {
+    createFolder(`${resultsFolder}/wcag`);
+  }
+
+  if (configuration.validateHTML) {
+    createFolder(`${resultsFolder}/html-validate`);
+  }
+
+  if (configuration.takeScreenshot) {
+    createFolder(`${resultsFolder}/screenshots`);
+  }
+}
+
 (async() => {
 
   setup();
@@ -773,19 +787,5 @@ const createFolder = (folderName) => {
     console.log(`${folderName} folder not found. Creating new folder...`)
     fs.mkdirSync(folderName);
     console.log(`${folderName} folder is created.`);
-  }
-}
-
-const setup = () => {
-  if (configuration.scanWCAG) {
-    createFolder(`${resultsFolder}/wcag`);
-  }
-
-  if (configuration.validateHTML) {
-    createFolder(`${resultsFolder}/html-validate`);
-  }
-
-  if (configuration.takeScreenshot) {
-    createFolder(`${resultsFolder}/screenshots`);
   }
 }
