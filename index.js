@@ -45,6 +45,14 @@ const domainName = configuration.domain;
 const entryUrl = configuration.entryUrl;
 const urlPattern = configuration.urlPattern;
 
+const createFolder = (folderName) => {
+  if (!fs.existsSync(folderName)) {
+    console.log(`${folderName} folder not found. Creating new folder...`)
+    fs.mkdirSync(folderName);
+    console.log(`${folderName} folder is created.`);
+  }
+}
+
 /* setup crawler */
 const setup = () => {
   if (configuration.scanWCAG) {
@@ -783,12 +791,4 @@ const getAllLinks = async (config) => {
   }
 
   return links;
-}
-
-const createFolder = (folderName) => {
-  if (!fs.existsSync(folderName)) {
-    console.log(`${folderName} folder not found. Creating new folder...`)
-    fs.mkdirSync(folderName);
-    console.log(`${folderName} folder is created.`);
-  }
 }
