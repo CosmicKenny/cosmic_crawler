@@ -36,4 +36,4 @@ const jsonToCsv = (file, fields, reportName, unwind = null) => {
   });
 }
 
-module.exports.jsonToCsv = jsonToCsv;
+module.exports = jsonToCsv;

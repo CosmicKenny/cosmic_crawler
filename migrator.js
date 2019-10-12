@@ -7,6 +7,7 @@ const fs = require('fs');
 const readFile = util.promisify(fs.readFile);
 const queue = require('queue');
 const request = require('request');
+const jsonToCsv = require('./jsonToCsv.js');
 
 const configuration = require('./config.js');
 
@@ -41,12 +42,16 @@ let invalidURLs = [];
       if (err) console.log(err);
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
+
+      jsonToCsv(`${resultsFolder}/crawledURLs.json`, ['url'], `${resultsFolder}/crawledURLs.csv`, 'url');
     });
 
     fs.writeFile(`${resultsFolder}/contents.json`, JSON.stringify(contents), (err, data) => {
       if (err) console.log(err);
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/contents.json`)} is saved.`);
+
+      jsonToCsv(`${resultsFolder}/contents.json`, ['url', 'pageTitle', 'title', 'description', 'gallery'], `${resultsFolder}/contents.csv`);
     });
 
     fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
@@ -131,6 +136,9 @@ const grabPageContent = async (config) => {
     if (isInternalURL(cleanUrl, domainName) && !isFileLink(cleanUrl)) {
       console.log(`${chalk.yellowBright('New URL found:')} ${cleanUrl}`);
       crawledURLs.push(cleanUrl);
+      contents.push({
+        url: cleanUrl
+      });
 
       /* queue crawling new URL*/
       q.push(async (cb) => {
@@ -196,8 +204,6 @@ const grabPageContent = async (config) => {
       });
     });
 
-  console.log(images);
-
   if (images) {
     contentObj['gallery'] = images;
 
@@ -212,7 +218,7 @@ const grabPageContent = async (config) => {
     });
   }
 
-  contents.push(contentObj);
+  contents[index] = contentObj;
 
   await page.close();
   console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
