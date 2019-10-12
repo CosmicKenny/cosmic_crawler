@@ -4,7 +4,6 @@ const util = require('util');
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
-const readFile = util.promisify(fs.readFile);
 const queue = require('queue');
 const request = require('request');
 const jsonToCsv = require('./jsonToCsv.js');
@@ -24,6 +23,15 @@ let crawledURLs = [];
 let contents = [];
 let invalidURLs = [];
 
+const getImageNameFromUrl = (url) => {
+  console.log(url);
+  let imageDirs = url.split('/');
+  let imageName = imageDirs[imageDirs.length - 1];
+  console.log(imageDirs, imageName);
+
+  return imageName;
+}
+
 (async() => {
   const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
@@ -33,7 +41,13 @@ let invalidURLs = [];
     url: entryUrl,
     browser,
     urlPattern: configuration.urlPattern
-  });
+  }).catch(err => {
+    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+    errorLogs.push({
+      url: url,
+      error: err
+    });
+  });;
 
   q.start(async (err) => {
     if (err) console.log(`Queue start error: ${err}`);
@@ -51,7 +65,7 @@ let invalidURLs = [];
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/contents.json`)} is saved.`);
 
-      jsonToCsv(`${resultsFolder}/contents.json`, ['url', 'pageTitle', 'title', 'description', 'gallery'], `${resultsFolder}/contents.csv`);
+      jsonToCsv(`${resultsFolder}/contents.json`, ['url', 'pageTitle', 'title', 'description', 'gallery', 'images'], `${resultsFolder}/contents.csv`);
     });
 
     fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
@@ -195,7 +209,8 @@ const grabPageContent = async (config) => {
     - get the image source of each filmstrip
     - replace the format from xxx/.tn.${original-name}.jpg to xxx/${original-name}
    */
-  let images = await page.$$eval('.gv_galleryWrap .gv_filmstrip img', imgs => imgs.map(img => img.src.replace('.tn.', '').replace(/\.jpg$/, '')))
+  console.log(`${chalk.yellowBright('Checking for gallery...:')}`);
+  let gallery = await page.$$eval('.gv_galleryWrap .gv_filmstrip img', imgs => imgs.map(img => img.src.replace('.tn.', '').replace(/\.jpg$/, '')))
     .catch(err => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
       errorLogs.push({
@@ -204,19 +219,50 @@ const grabPageContent = async (config) => {
       });
     });
 
-  if (images) {
-    contentObj['gallery'] = images;
+  if (gallery && gallery.length) {
+    contentObj['gallery'] = gallery;
+    console.log(gallery)
 
-    console.log(`${chalk.yellowBright('Found gallery images.')} Downloading images...`)
+    console.log(`${chalk.yellowBright('Found gallery images.')} Downloading gallery images...`)
     /* Save image */
-    images.map(img => {
-      let imageDirs = img.split('/');
-      let imageName = imageDirs[imageDirs.length - 1];
+    gallery.map(img => {
+      let imageName = getImageNameFromUrl(img);
+      console.log(imageName);
       download(img, `${dir}/${imageName}`, () => {
         console.log(`${chalk.blueBright(`${dir}/${imageName}`)} is saved.`);
       });
     });
   }
+
+  console.log(`${chalk.yellowBright('Gallery check complete')}`);
+
+  console.log(`${chalk.yellowBright('Checking for images...')}`);
+  // let images = await page.$$eval('.pagecontent_box :not(.gv_galleryWrap) img', imgs => imgs.map(img => img.src))
+  let images = await page.$$eval('.pageblock_box :not(.gv_galleryWrap) img', imgs => imgs.map(img => img.src))
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      errorLogs.push({
+        url: url,
+        error: err
+      });
+    });
+
+
+  if (images && images.length) {
+    contentObj['images'] = images;
+    createFolder(`${dir}/images`);
+
+    console.log(`${chalk.yellowBright('Found images in the page')} Downloading images...`);
+    images.map(img => {
+      let imageName = getImageNameFromUrl(img);
+      console.log(imageName);
+      download(img, `${dir}/images/${imageName}`, () => {
+        console.log(`${chalk.blueBright(`${dir}/images/${imageName}`)} is saved.`);
+      });
+    });
+  }
+
+  console.log(`${chalk.yellowBright('Image check complete')}`);
 
   contents[index] = contentObj;
 
@@ -286,7 +332,7 @@ const createFolder = (folderName) => {
     fs.mkdirSync(folderName);
     console.log(`${folderName} folder is created.`);
   }
-}
+};
 
 const download = (uri, filename, callback) => {
   request.head(uri, (err, res, body) => {
