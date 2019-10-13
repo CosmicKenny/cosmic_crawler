@@ -23,20 +23,14 @@ let crawledURLs = [];
 let contents = [];
 let invalidURLs = [];
 
-const getImageNameFromUrl = (url) => {
-  console.log(url);
-  let imageDirs = url.split('/');
-  let imageName = imageDirs[imageDirs.length - 1];
-  console.log(imageDirs, imageName);
-
-  return imageName;
-}
-
 (async() => {
   const browser = await puppeteer.launch();
   console.log(chalk.green('Browser launched'));
 
   crawledURLs.push(entryUrl);
+  contents.push({
+    url: entryUrl
+  });
   await grabPageContent({
     url: entryUrl,
     browser,
@@ -45,7 +39,7 @@ const getImageNameFromUrl = (url) => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
-      error: err
+      error: JSON.stringify(err)
     });
   });;
 
@@ -57,7 +51,6 @@ const getImageNameFromUrl = (url) => {
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
 
-      jsonToCsv(`${resultsFolder}/crawledURLs.json`, ['url'], `${resultsFolder}/crawledURLs.csv`, 'url');
     });
 
     fs.writeFile(`${resultsFolder}/contents.json`, JSON.stringify(contents), (err, data) => {
@@ -65,7 +58,6 @@ const getImageNameFromUrl = (url) => {
 
       console.log(`${chalk.underline.blueBright(`${resultsFolder}/contents.json`)} is saved.`);
 
-      jsonToCsv(`${resultsFolder}/contents.json`, ['url', 'pageTitle', 'title', 'description', 'gallery', 'images'], `${resultsFolder}/contents.csv`);
     });
 
     fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
@@ -182,14 +174,14 @@ const grabPageContent = async (config) => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
-      error: err
+      error: JSON.stringify(err)
     });
   });
   contentObj['title'] = await page.$eval('.pagecontent_box h1', div => div.innerHTML).catch(err => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
-      error: err
+      error: JSON.stringify(err)
     });
   });
 
@@ -197,7 +189,7 @@ const grabPageContent = async (config) => {
     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
     errorLogs.push({
       url: url,
-      error: err
+      error: JSON.stringify(err)
     });
   });
 
@@ -209,60 +201,55 @@ const grabPageContent = async (config) => {
     - get the image source of each filmstrip
     - replace the format from xxx/.tn.${original-name}.jpg to xxx/${original-name}
    */
-  console.log(`${chalk.yellowBright('Checking for gallery...:')}`);
-  let gallery = await page.$$eval('.gv_galleryWrap .gv_filmstrip img', imgs => imgs.map(img => img.src.replace('.tn.', '').replace(/\.jpg$/, '')))
+  // console.log(`${chalk.yellowBright('Checking for gallery for:')} ${url}`);
+  // let gallery = await page.$$eval('.gv_galleryWrap .gv_filmstrip img', imgs => imgs.map(img => img.src.replace('.tn.', '').replace(/\.jpg$/, '')))
+  //   .catch(err => {
+  //     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+  //     errorLogs.push({
+  //       url: url,
+  //       error: err
+  //     });
+  //   });
+
+  // if (gallery && gallery.length) {
+  //   contentObj['gallery'] = gallery;
+  //   console.log(`${chalk.yellowBright('Found gallery images. Downloading gallery images...')}`)
+  //   // /* Save image */
+  //   gallery.map(img => {
+  //     let imageName = getImageNameFromUrl(img);
+  //     download(img, `${dir}/${imageName}`, () => {
+  //       console.log(`${chalk.blueBright(`${dir}/${imageName}`)} is saved.`);
+  //     });
+  //   });
+  // }
+  // console.log(`${chalk.yellowBright('Gallery check complete:')} ${url}`);
+
+
+  /* Check for images */
+  console.log(`${chalk.yellowBright('Checking images for:')} ${url}`);
+  let images = await page.$$eval('.pagecontent_box :not(.gv_galleryWrap) img, .pageblock_box :not(.gv_galleryWrap) img', imgs => imgs.map(img => img.src))
+  // let images = await page.$$eval('.pageblock_box :not(.gv_galleryWrap) img', imgs => imgs.map(img => img.src))
     .catch(err => {
       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
       errorLogs.push({
         url: url,
-        error: err
+        error: JSON.stringify(err)
       });
     });
-
-  if (gallery && gallery.length) {
-    contentObj['gallery'] = gallery;
-    console.log(gallery)
-
-    console.log(`${chalk.yellowBright('Found gallery images.')} Downloading gallery images...`)
-    /* Save image */
-    gallery.map(img => {
-      let imageName = getImageNameFromUrl(img);
-      console.log(imageName);
-      download(img, `${dir}/${imageName}`, () => {
-        console.log(`${chalk.blueBright(`${dir}/${imageName}`)} is saved.`);
-      });
-    });
-  }
-
-  console.log(`${chalk.yellowBright('Gallery check complete')}`);
-
-  console.log(`${chalk.yellowBright('Checking for images...')}`);
-  // let images = await page.$$eval('.pagecontent_box :not(.gv_galleryWrap) img', imgs => imgs.map(img => img.src))
-  let images = await page.$$eval('.pageblock_box :not(.gv_galleryWrap) img', imgs => imgs.map(img => img.src))
-    .catch(err => {
-      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-      errorLogs.push({
-        url: url,
-        error: err
-      });
-    });
-
 
   if (images && images.length) {
     contentObj['images'] = images;
     createFolder(`${dir}/images`);
 
-    console.log(`${chalk.yellowBright('Found images in the page')} Downloading images...`);
+    console.log(`${chalk.yellowBright('Downloading images for:')}  ${url}...`);
     images.map(img => {
       let imageName = getImageNameFromUrl(img);
-      console.log(imageName);
       download(img, `${dir}/images/${imageName}`, () => {
         console.log(`${chalk.blueBright(`${dir}/images/${imageName}`)} is saved.`);
       });
     });
   }
-
-  console.log(`${chalk.yellowBright('Image check complete')}`);
+  console.log(`${chalk.yellowBright('Image check complete for:')} ${url}`);
 
   contents[index] = contentObj;
 
@@ -332,13 +319,21 @@ const createFolder = (folderName) => {
     fs.mkdirSync(folderName);
     console.log(`${folderName} folder is created.`);
   }
-};
+}
+
+const getImageNameFromUrl = (url) => {
+  let imageDirs = url.split('/');
+  let imageName = imageDirs[imageDirs.length - 1].split('?')[0];
+
+  return imageName;
+}
 
 const download = (uri, filename, callback) => {
+  console.log(`${chalk.yellowBright('Downloading')} ${uri}`);
   request.head(uri, (err, res, body) => {
     request(uri).pipe(fs.createWriteStream(filename))
       .on('error', (errMsg) => {
-        console.log(errMsg);
+        console.log(`${chalk.redBg('Download Error:')} ${errMsg}`);
       })
       .on('close', callback);
   });
