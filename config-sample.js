@@ -14,6 +14,7 @@ module.exports = {
   checkImageExist: true,
   checkVideoExist: false,
   checkIframeExist: false,
+  disableCrawl: false, // true to turn off the crawler
   detectExternalResource: false,
   savePageInfo: false,
   scanWCAG: false,

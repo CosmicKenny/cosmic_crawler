@@ -13,6 +13,7 @@ let q = new queue({
 var domainName = configuration.domain;
 let entryUrl = configuration.entryUrl;
 const resultsFolder = configuration.reportsFolderPath;
+const disableCrawl = configuration.disableCrawl;
 let errorLogs = [];
 
 let crawledURLs = [];
@@ -131,7 +132,7 @@ const grabPageContent = async (config) => {
       continue;
     }
 
-    if (isCrawled(cleanUrl)) {
+    if (isCrawled(cleanUrl) || disableCrawl) {
       continue;
     }
 
