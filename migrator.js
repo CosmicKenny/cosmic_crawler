@@ -1,12 +1,8 @@
 const chalk = require('chalk');
-
-const util = require('util');
 const puppeteer = require('puppeteer');
-const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
 const request = require('request');
-const jsonToCsv = require('./jsonToCsv.js');
 
 const configuration = require('./config.js');
 
@@ -201,28 +197,28 @@ const grabPageContent = async (config) => {
     - get the image source of each filmstrip
     - replace the format from xxx/.tn.${original-name}.jpg to xxx/${original-name}
    */
-  // console.log(`${chalk.yellowBright('Checking for gallery for:')} ${url}`);
-  // let gallery = await page.$$eval('.gv_galleryWrap .gv_filmstrip img', imgs => imgs.map(img => img.src.replace('.tn.', '').replace(/\.jpg$/, '')))
-  //   .catch(err => {
-  //     console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-  //     errorLogs.push({
-  //       url: url,
-  //       error: err
-  //     });
-  //   });
+  console.log(`${chalk.yellowBright('Checking for gallery for:')} ${url}`);
+  let gallery = await page.$$eval('.gv_galleryWrap .gv_filmstrip img', imgs => imgs.map(img => img.src.replace('.tn.', '').replace(/\.jpg$/, '')))
+    .catch(err => {
+      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+      errorLogs.push({
+        url: url,
+        error: err
+      });
+    });
 
-  // if (gallery && gallery.length) {
-  //   contentObj['gallery'] = gallery;
-  //   console.log(`${chalk.yellowBright('Found gallery images. Downloading gallery images...')}`)
-  //   // /* Save image */
-  //   gallery.map(img => {
-  //     let imageName = getImageNameFromUrl(img);
-  //     download(img, `${dir}/${imageName}`, () => {
-  //       console.log(`${chalk.blueBright(`${dir}/${imageName}`)} is saved.`);
-  //     });
-  //   });
-  // }
-  // console.log(`${chalk.yellowBright('Gallery check complete:')} ${url}`);
+  if (gallery && gallery.length) {
+    contentObj['gallery'] = gallery;
+    console.log(`${chalk.yellowBright('Found gallery images. Downloading gallery images...')}`)
+    // /* Save image */
+    gallery.map(img => {
+      let imageName = getImageNameFromUrl(img);
+      download(img, `${dir}/${imageName}`, () => {
+        console.log(`${chalk.blueBright(`${dir}/${imageName}`)} is saved.`);
+      });
+    });
+  }
+  console.log(`${chalk.yellowBright('Gallery check complete:')} ${url}`);
 
 
   /* Check for images */
