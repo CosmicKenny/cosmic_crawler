@@ -9,13 +9,14 @@ const util = require('util');
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
-const readFile = util.promisify(fs.readFile);
 const queue = require('queue');
 const jsonMerger = require('./jsonMerger.js');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
 const configuration = require('./config.js');
+
+const readFile = util.promisify(fs.readFile);
 
 let urlSource = [];
 let crawledURLs = [];
@@ -36,8 +37,6 @@ let pagesWithFiles = [];
 let q = new queue({
   concurrency: 5
 });
-
-let globalIndex = 0;
 
 const resultsFolder = configuration.reportsFolderPath;
 
@@ -413,9 +412,14 @@ const crawlAllURLs = async (url, browser) => {
 
   // =====================================================
   /* Do other fun things for this page here */
+  let index = crawledURLs.indexOf(url);
+  if (configuration.urlsSource !== null) {
+    index = urlSource.indexOf(url);
+  }
+
   if (configuration.takeScreenshot) {
     console.log('Taking screenshot...');
-    await takeScreenshot(page);
+    await takeScreenshot(page, index + 1);
   }
 
   if (configuration.detectFileLink) {
@@ -466,11 +470,6 @@ const crawlAllURLs = async (url, browser) => {
     console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
   }
 
-
-  let index = crawledURLs.indexOf(url);
-  if (configuration.urlsSource !== null) {
-    index = urlSource.indexOf(url);
-  }
   if (configuration.scanWCAG) {
     console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
     await wcagTester.wcagTester(url, `${resultsFolder}/wcag`, `${index + 1}`)
@@ -748,7 +747,7 @@ const isExternalSource = (url, domain) => {
   return (!url.includes(domain));
 };
 
-const takeScreenshot = async (page) => {
+const takeScreenshot = async (page, index) => {
   const dimensions = await page.evaluate(() => {
     return {
       width: document.documentElement.clientWidth,
@@ -756,16 +755,15 @@ const takeScreenshot = async (page) => {
       deviceScaleFactor: window.devicePixelRatio
     };
   });
-  console.log(`Dimension of the page: ${JSON.stringify(dimensions)}`);
 
   page.setViewport({
     width: dimensions.width,
     height: dimensions.height
   });
   await page.screenshot({
-    path: `${resultsFolder}/screenshots/${globalIndex + 1}.jpg`
+    path: `${resultsFolder}/screenshots/${index}.jpg`,
+    fullPage: true
   });
-  globalIndex++;
   console.log('Screenshot is saved.');
 }
 
