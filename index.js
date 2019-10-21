@@ -43,6 +43,7 @@ const resultsFolder = configuration.reportsFolderPath;
 const domainName = configuration.domain;
 const entryUrl = configuration.entryUrl;
 const urlPattern = configuration.urlPattern;
+const disableCrawl = configuration.disableCrawl;
 
 const createFolder = (folderName) => {
   if (!fs.existsSync(folderName)) {
@@ -310,7 +311,7 @@ const crawlAllURLs = async (url, browser) => {
     }
 
     /* check if {cleanUrl} is crawled before */
-    if (isCrawled(cleanUrl)) {
+    if (isCrawled(cleanUrl) || disableCrawl) {
       continue;
     }
 
