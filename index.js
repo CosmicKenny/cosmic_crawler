@@ -65,6 +65,8 @@ const setup = () => {
 
   if (configuration.takeScreenshot) {
     createFolder(`${resultsFolder}/screenshots`);
+    createFolder(`${resultsFolder}/screenshots/mobile`);
+    createFolder(`${resultsFolder}/screenshots/desktop`);
   }
 }
 
@@ -254,7 +256,7 @@ const setup = () => {
 const crawlAllURLs = async (url, browser) => {
   let page = await browser.newPage();
 
-  await page.setViewport(configuration.viewportSize);
+  await page.setViewport(configuration.viewportSize.desktop);
 
   let filesInfo = {
     pageUrl: url,
@@ -749,23 +751,35 @@ const isExternalSource = (url, domain) => {
 };
 
 const takeScreenshot = async (page, index) => {
-  const dimensions = await page.evaluate(() => {
-    return {
-      width: document.documentElement.clientWidth,
-      height: document.documentElement.clientHeight,
-      deviceScaleFactor: window.devicePixelRatio
-    };
-  });
+  // const dimensions = await page.evaluate(() => {
+  //   return {
+  //     width: document.documentElement.clientWidth,
+  //     height: document.documentElement.clientHeight,
+  //     deviceScaleFactor: window.devicePixelRatio
+  //   };
+  // });
 
   page.setViewport({
-    width: dimensions.width,
-    height: dimensions.height
+    width: configuration.viewportSize.mobile.width,
+    height: configuration.viewportSize.mobile.height
   });
   await page.screenshot({
-    path: `${resultsFolder}/screenshots/${index}.jpg`,
+    path: `${resultsFolder}/screenshots/mobile/${index}.jpg`,
     fullPage: true
   });
-  console.log('Screenshot is saved.');
+
+  console.log('Mobile screenshot is saved.');
+
+  page.setViewport({
+    width: configuration.viewportSize.desktop.width,
+    height: configuration.viewportSize.desktop.height
+  });
+  await page.screenshot({
+    path: `${resultsFolder}/screenshots/desktop/${index}.jpg`,
+    fullPage: true
+  });
+
+  console.log('Desktop screenshot is saved.');
 }
 
 const getAllLinks = async (config) => {

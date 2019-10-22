@@ -5,8 +5,14 @@ module.exports = {
   // urlPattern: filtered/path,
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked
   viewportSize: {
-    width: 375, // desktop = 1366
-    height: 667 // desktop = 768
+    mobile: {
+      width: 375,
+      height: 667
+    },
+    desktop: {
+      width: 1366,
+      height: 768
+    }
   },
   debug: false,
   checkBrokenLink: false,
