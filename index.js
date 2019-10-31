@@ -345,7 +345,7 @@ const crawlAllURLs = async (url, browser) => {
         let testResponse;
         if (cleanUrl.indexOf('-admin.cwp') > -1) {
           /* Check if the link contain CWP link (xxx-admin.cwp.sg or xxx-admin.cwp-stg.sg) */
-          console.log(`${chalk.redBg('ERROR:')} ${cleanUrl} contain ${chalk.yellow('-admin')} in the URL.`);
+          console.log(`${chalk.bgRed('ERROR:')} ${cleanUrl} contain ${chalk.yellow('-admin.cwp')} in the URL.`);
           testPageObj.code = 4031; /* Special code by Kenny Saw, given to CWP admin */
           isBrokenURL = true;
         } else {
@@ -379,7 +379,7 @@ const crawlAllURLs = async (url, browser) => {
 
         console.log(`Completed tested ${cleanUrl}`);
 
-        testPageObj.code = (testResponseError) ? null : testResponse.status();
+        testPageObj.code = (!testResponseError) ? null : testResponse.status();
 
         if (testPageObj.code != 403) {
           /* the URL is considered tested only if it is not 403 */
