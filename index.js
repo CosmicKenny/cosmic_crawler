@@ -204,19 +204,46 @@ const setup = () => {
     }
 
     if (configuration.detectExternalResource) {
-      fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
+      let iframes = [];
+      let images = [];
+      let videos = [];
+      pagesWithExternalIframes.map(item => {
+        item.iframes.map(iframe => {
+          iframes.push({
+            pageUrl: item.url,
+            iframe: iframe
+          });
+        });
+      });
+      pagesWithExternalImages.map(item => {
+        item.images.map(image => {
+          images.push({
+            pageUrl: item.url,
+            image: image
+          });
+        });
+      });
+      pagesWithExternalVideos.map(item => {
+        item.videos.map(video => {
+          videos.push({
+            pageUrl: item.url,
+            video: video
+          });
+        });
+      });
+      fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(iframes), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
       });
 
-      fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
+      fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(images), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
       });
 
-      fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
+      fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(videos), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
