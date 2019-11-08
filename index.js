@@ -274,7 +274,7 @@ const setup = () => {
     console.log(chalk.green('Browser closed'));
 
     if (configuration.detectExternalResource) {
-      jsonMerger.jsonMerger([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
+      jsonMerger([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
     }
   });
 

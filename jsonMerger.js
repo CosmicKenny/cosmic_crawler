@@ -36,35 +36,30 @@ const parseDomain = (url) => {
 
 const afterReadingFiles = () => {
   urls.map(url => {
-    if (url.iframes) {
-      let iframes = url.iframes;
-      iframes.map(iframe => {
-        let domainName = parseDomain(iframe);
-        if (domainNames.indexOf(domainName) > -1) {
-          // domain exist
-        } else {
-          domainNames.push(domainName);
-        }
-      });
-    } else if (url.images) {
-      let images = url.images;
-      images.map(image => {
-        let domainName = parseDomain(image);
-        if (domainNames.indexOf(domainName) > -1) {
-          // domain exist
-        } else {
-          domainNames.push(domainName);
-        }
-      });
+    if (url.iframe) {
+      let iframe = url.iframe;
+      let domainName = parseDomain(iframe);
+      if (domainNames.indexOf(domainName) > -1) {
+        // domain exist
+      } else {
+        domainNames.push(domainName);
+      }
+    } else if (url.image) {
+      let image = url.image;
+      let domainName = parseDomain(image);
+      if (domainNames.indexOf(domainName) > -1) {
+        // domain exist
+      } else {
+        domainNames.push(domainName);
+      }
     } else if (url.videos) {
-      let videos = url.videos;
-      videos.map(video => {
-        if (domainNames.indexOf(domainName) > -1) {
-          // domain exist
-        } else {
-          domainNames.push(domainName);
-        }
-      });
+      let video = url.video;
+      let domainName = parseDomain(video);
+      if (domainNames.indexOf(domainName) > -1) {
+        // domain exist
+      } else {
+        domainNames.push(domainName);
+      }
     }
   });
 
@@ -81,4 +76,4 @@ const jsonMerger = (files, storage) => {
   recursiveReadFile(0, afterReadingFiles);
 };
 
-module.exports.jsonMerger = jsonMerger;
+module.exports = jsonMerger;
