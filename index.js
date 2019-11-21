@@ -55,6 +55,8 @@ const createFolder = (folderName) => {
 
 /* setup crawler */
 const setup = () => {
+  createFolder(resultsFolder);
+
   if (configuration.scanWCAG) {
     createFolder(`${resultsFolder}/wcag`);
   }
