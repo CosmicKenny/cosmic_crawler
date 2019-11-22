@@ -11,7 +11,6 @@ const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
 const queue = require('queue');
-const jsonMerger = require('./jsonMerger.js');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 
@@ -34,12 +33,13 @@ let pagesWithVideos = [];
 let pagesWithImages = [];
 let pagesWithIframes = [];
 let pagesWithFiles = [];
+let externalDomains = [];
 
 let q = new queue({
   concurrency: 5
 });
 
-const resultsFolder = configuration.reportsFolderPath;
+const resultsFolder = configuration.outputFolderName;
 
 const entryUrl = configuration.entryUrl;
 const domainName = getDomainName(entryUrl);
@@ -243,6 +243,12 @@ const setup = () => {
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
       });
+
+      fs.writeFile(`${resultsFolder}/externalDomains.json`, JSON.stringify(externalDomains), (err, data) => {
+        if (err) console.log(err);
+
+        console.log(`${chalk.underline.blueBright(`${resultsFolder}/externalDomains.json`)} is saved.`);
+      });
     }
 
     if (configuration.checkBrokenLink) {
@@ -267,10 +273,6 @@ const setup = () => {
 
     await browser.close();
     console.log(chalk.green('Browser closed'));
-
-    if (configuration.detectExternalResource) {
-      jsonMerger([`${resultsFolder}/pagesWithExternalIframes.json`, `${resultsFolder}/pagesWithExternalImages.json`, `${resultsFolder}/pagesWithExternalVideos.json`], resultsFolder);
-    }
   });
 
 })();
@@ -286,6 +288,21 @@ const crawlAllURLs = async (url, browser) => {
   };
 
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
+
+  if (configuration.detectExternalResource) {
+    await page.setRequestInterception(true);
+    page.on('request', interceptedRequest => {
+      if (!isInternalURL(interceptedRequest.url(), domainName)) {
+        let domain = getDomainName(interceptedRequest.url());
+
+        if (externalDomains.indexOf(domain) == -1) {
+          externalDomains.push(domain);
+        }
+      }
+      interceptedRequest.continue();
+    });
+  }
+
   await page.goto(url, {
     timeout: 60000
   }).catch((err) => {
@@ -624,7 +641,7 @@ const getPagesWithExternalVideos = async (page, url, domain) => {
 
     const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
     for (let i = 0; i < videos.length; i++) {
-      if (!isInternalURL(videos[i], domain)) {
+    if (!isInternalURL(videos[i], domain)) {
         temp.push(videos[i]);
       }
     }
