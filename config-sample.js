@@ -1,6 +1,5 @@
 module.exports = {
   entryUrl: 'https://www.csit.gov.sg/',
-  domain: 'www.csit.gov.sg',
   urlPattern: null,
   // urlPattern: filtered/path,
   pageWaitTime: 10000, // used to slow down crawler to prevent being blocked

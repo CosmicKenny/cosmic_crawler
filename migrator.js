@@ -1,8 +1,18 @@
+/*
+This module crawl through a listing page with specific template, and download the content into a structured data
+Process:
+- Start crawling
+- Grab content based on defined structure
+- Save into defined JSON structure
+- Save image in the folder of the page
+- Generate list of URLs mapping to the files
+*/
+
 const chalk = require('chalk');
 const puppeteer = require('puppeteer');
 const fs = require('fs');
 const queue = require('queue');
-const request = require('request');
+const {createFolder, isCrawled, getDomainName, isInternalURL, download, isFileLink, isValidURL, getAllLinks} = require('./cosmicUtils.js');
 
 const configuration = require('./config.js');
 
@@ -10,8 +20,8 @@ let q = new queue({
   concurrency: 5
 });
 
-var domainName = configuration.domain;
 let entryUrl = configuration.entryUrl;
+let domainName = getDomainName(entryUrl);
 const resultsFolder = configuration.reportsFolderPath;
 const disableCrawl = configuration.disableCrawl;
 let errorLogs = [];
@@ -132,7 +142,7 @@ const grabPageContent = async (config) => {
       continue;
     }
 
-    if (isCrawled(cleanUrl) || disableCrawl) {
+    if (isCrawled(cleanUrl, crawledURLs) || disableCrawl) {
       continue;
     }
 
@@ -255,83 +265,9 @@ const grabPageContent = async (config) => {
 
 };
 
-const getAllLinks = async (config) => {
-  const { page, urlPattern } = config;
-  let links;
-  if (urlPattern !== null) {
-    /* only get URL that contain the pattern of {domainName}/{pattern} */
-    links = await page.$$eval('a', (as, args) => {
-      let { domainName, urlPattern } = args;
-      let regex = new RegExp(`^http(s)?:\/\/${domainName}\/${urlPattern.replace(/\//g, '\\/')}`);
-
-      return as.filter(a => {
-        return (a.href.match(regex) !== null);
-      }).map(a => {
-        return a.href;
-      });
-    }, { domainName, urlPattern }).catch(err => {
-      console.log(`${chalk.red('Crawling error:')} ${err}`);
-    });
-
-  } else {
-    links = await page.$$eval('a', as => as.map(a => a.href));
-  }
-
-  return links;
-};
-
-const isCrawled = (url) => {
-  return (crawledURLs.indexOf(url) > -1);
-};
-
-const isValidURL = (url) => {
-  /*
-  condition:
-  - should only start with http:// or https://
-  - should not end with .pdf
-  */
-  const urlFormat = /^http(s)?:\/\/(.(?!pdf(\?.*)?$))*$/;
-  return (url.match(urlFormat) !== null);
-};
-
-const isFileLink = (url) => {
-  /*
-  condition:
-  - should only start with http:// or https://
-  - should end with .{ext} or .{ext}?xxx, where ext = pdf, jpg, jpeg, png, xls, xlsx, doc, docx
-  */
-  const urlFormat = /^http(s)?:\/\/.+(\.(pdf|jpe?g|png|xlsx?|docx?|mp3|mp4)(\?.*)?){1}$/;
-  return (url.match(urlFormat) !== null);
-};
-
-const isInternalURL = (url, domain) => {
-  /* URL should contain the domain name */
-  const urlFormat = new RegExp(`^http(s)?:\/\/${domain}`);
-  return (url.match(urlFormat) !== null);
-}
-
-const createFolder = (folderName) => {
-  if (!fs.existsSync(folderName)) {
-    console.log(`${folderName} folder not found. Creating new folder...`)
-    fs.mkdirSync(folderName);
-    console.log(`${folderName} folder is created.`);
-  }
-}
-
 const getImageNameFromUrl = (url) => {
   let imageDirs = url.split('/');
   let imageName = imageDirs[imageDirs.length - 1].split('?')[0];
 
   return imageName;
 }
-
-const download = (uri, filename, callback) => {
-  console.log(`${chalk.yellowBright('Downloading')} ${uri}`);
-  request.head(uri, (err, res, body) => {
-    request(uri).pipe(fs.createWriteStream(filename))
-      .on('error', (errMsg) => {
-        console.log(`${chalk.redBg('Download Error:')} ${errMsg}`);
-      })
-      .on('close', callback);
-  });
-};

@@ -6,6 +6,7 @@ const chalk = require('chalk');
   - bgMagenta: custom plugin
  */
 const util = require('util');
+const {createFolder, isCrawled, getDomainName, isInternalURL, isFileLink, isValidURL, getAllLinks, takeScreenshot} = require('./cosmicUtils.js');
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
@@ -40,18 +41,10 @@ let q = new queue({
 
 const resultsFolder = configuration.reportsFolderPath;
 
-const domainName = configuration.domain;
 const entryUrl = configuration.entryUrl;
+const domainName = getDomainName(entryUrl);
 const urlPattern = configuration.urlPattern;
 const disableCrawl = configuration.disableCrawl;
-
-const createFolder = (folderName) => {
-  if (!fs.existsSync(folderName)) {
-    console.log(`${folderName} folder not found. Creating new folder...`)
-    fs.mkdirSync(folderName);
-    console.log(`${folderName} folder is created.`);
-  }
-}
 
 /* setup crawler */
 const setup = () => {
@@ -342,7 +335,7 @@ const crawlAllURLs = async (url, browser) => {
     }
 
     /* check if {cleanUrl} is crawled before */
-    if (isCrawled(cleanUrl) || disableCrawl) {
+    if (isCrawled(cleanUrl, crawledURLs) || disableCrawl) {
       continue;
     }
 
@@ -451,7 +444,19 @@ const crawlAllURLs = async (url, browser) => {
 
   if (configuration.takeScreenshot) {
     console.log('Taking screenshot...');
-    await takeScreenshot(page, index + 1);
+    await takeScreenshot({
+      page,
+      mobileDimension: {
+        width: configuration.viewportSize.mobile.width,
+        height: configuration.viewportSize.mobile.height
+      },
+      desktopDimension: {
+        width: configuration.viewportSize.desktop.width,
+        height: configuration.viewportSize.desktop.height
+      },
+      outputPath: resultsFolder,
+      outputFileName: `${index + 1}.jpg`,
+    });
   }
 
   if (configuration.detectFileLink) {
@@ -533,39 +538,9 @@ const _getPathName = (url, basePath) => {
   return newUrl;
 }
 
-const isCrawled = (url) => {
-  return (crawledURLs.indexOf(url) > -1);
-};
-
 const isTested = (url) => {
   return (testedURLs.indexOf(url) > -1);
 };
-
-const isValidURL = (url) => {
-  /*
-  condition:
-  - should only start with http:// or https://
-  - should not end with .pdf
-  */
-  const urlFormat = /^http(s)?:\/\/(.(?!pdf(\?.*)?$))*$/;
-  return (url.match(urlFormat) !== null);
-};
-
-const isFileLink = (url) => {
-  /*
-  condition:
-  - should only start with http:// or https://
-  - should end with .{ext} or .{ext}?xxx, where ext = pdf, jpg, jpeg, png, xls, xlsx, doc, docx
-  */
-  const urlFormat = /^http(s)?:\/\/.+(\.(pdf|jpe?g|png|xlsx?|docx?|mp3|mp4)(\?.*)?){1}$/;
-  return (url.match(urlFormat) !== null);
-};
-
-const isInternalURL = (url, domain) => {
-  /* URL should contain the domain name */
-  const urlFormat = new RegExp(`^http(s)?:\/\/${domain}`);
-  return (url.match(urlFormat) !== null);
-}
 
 const getLastUpdatedDate = async (page, selector) => {
   const lastUpdatedText = await page.$eval(selector, node => node.innerHTML)
@@ -593,16 +568,6 @@ const saveHTML = async (page, url) => {
   return pageContent;
 };
 
-// const hasIframe = (html) => {
-//   /* find if the html has iframe which:
-//     - NOT <iframe sandbox=... (from WOGAA)
-//     - NOT <iframe id="stSegmentFrame"... (from addthis)
-//    */
-//   let regex = /<iframe\s(?!sandbox)(?!id="stSegmentFrame")(?!id="stLframe")/g;
-
-//   return regex.test(html);
-// };
-
 const getPagesWithExternalIframes = async (page, url, domain) => {
   let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
 
@@ -611,7 +576,7 @@ const getPagesWithExternalIframes = async (page, url, domain) => {
 
     const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
     for (let i = 0; i < iframes.length; i++) {
-      if (isExternalSource(iframes[i], domain)) {
+      if (!isInternalURL(iframes[i], domain)) {
         temp.push(iframes[i]);
       }
     }
@@ -635,7 +600,7 @@ const getPagesWithExternalImages = async (page, url, domain) => {
 
     const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
     for (let i = 0; i < images.length; i++) {
-      if (isExternalSource(images[i], domain)) {
+      if (!isInternalURL(images[i], domain)) {
         temp.push(images[i]);
       }
     }
@@ -659,7 +624,7 @@ const getPagesWithExternalVideos = async (page, url, domain) => {
 
     const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
     for (let i = 0; i < videos.length; i++) {
-      if (isExternalSource(videos[i], domain)) {
+      if (!isInternalURL(videos[i], domain)) {
         temp.push(videos[i]);
       }
     }
@@ -773,64 +738,4 @@ const getPageInformation = async (page, url) => {
   }
 
   crawledPages.push(obj);
-}
-
-const isExternalSource = (url, domain) => {
-  return (!url.includes(domain));
-};
-
-const takeScreenshot = async (page, index) => {
-  // const dimensions = await page.evaluate(() => {
-  //   return {
-  //     width: document.documentElement.clientWidth,
-  //     height: document.documentElement.clientHeight,
-  //     deviceScaleFactor: window.devicePixelRatio
-  //   };
-  // });
-
-  page.setViewport({
-    width: configuration.viewportSize.mobile.width,
-    height: configuration.viewportSize.mobile.height
-  });
-  await page.screenshot({
-    path: `${resultsFolder}/screenshots/mobile/${index}.jpg`,
-    fullPage: true
-  });
-
-  console.log('Mobile screenshot is saved.');
-
-  page.setViewport({
-    width: configuration.viewportSize.desktop.width,
-    height: configuration.viewportSize.desktop.height
-  });
-  await page.screenshot({
-    path: `${resultsFolder}/screenshots/desktop/${index}.jpg`,
-    fullPage: true
-  });
-
-  console.log('Desktop screenshot is saved.');
-}
-
-const getAllLinks = async (config) => {
-  const { page, urlPattern } = config;
-  let links;
-  if (urlPattern !== null) {
-    /* only get URL that contain the pattern of {domainName}/{pattern} */
-    links = await page.$$eval('a', (as, args) => {
-      let { domainName, urlPattern } = args;
-      let regex = new RegExp(`^http(s)?:\/\/${domainName}\/${urlPattern.replace(/\//g, '\\/')}`);
-      return as.filter(a => {
-        return (a.href.match(regex) !== null);
-      }).map(a => {
-        return a.href;
-      });
-    }, { domainName, urlPattern }).catch(err => {
-      console.log(`${chalk.red('Crawling error:')} ${err}`);
-    });
-
-  } else {
-    links = await page.$$eval('a', as => as.map(a => a.href));
-  }
-
-  return links;
 }

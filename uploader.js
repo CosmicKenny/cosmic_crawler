@@ -1,3 +1,5 @@
+/* This module upload the content from JSON/CSV to the system via the endpoint */
+
 const chalk = require('chalk');
 const util = require('util');
 
@@ -20,7 +22,7 @@ let index = 0;
 
   contents = await readFile(`./${resultsFolder}/${contentFilename}`).catch(err => {
     console.log(err);
-  });  
+  });
 
   contents = JSON.parse(contents);
 
@@ -29,7 +31,7 @@ let index = 0;
   });
 
   contents = contents.reverse();
-  
+
   wpContents = contents.map((content) => {
     // return content.url;
     return {
@@ -62,7 +64,7 @@ const uploadContents = async (content) => {
 
   console.log(`${chalk.yellowBright('Uploaded:')} ${contents[index].url}`);
   console.log(`${chalk.yellowBright('Migration Status: ')} ${JSON.stringify(status)}`);
-  
+
   migrationLog.push({
     url: contents[index].url,
     status
