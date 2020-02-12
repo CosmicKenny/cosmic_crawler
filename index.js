@@ -15,6 +15,7 @@ const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 const getExternalSources = require('./getExternalSources');
 const takeScreenshot = require('./takeScreenshot');
+const elementsFinder = require('./elementsFinder');
 
 const configuration = require('./config.js');
 
@@ -126,16 +127,16 @@ const setup = () => {
     });
 
     if (configuration.checkIframeExist) {
-      let items = [];
-      pagesWithIframes.map(item => {
-        item.iframes.map(iframe => {
-          items.push({
-            pageUrl: item.pageUrl,
-            iframe: iframe
-          });
-        });
-      });
-      fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(items), (err, data) => {
+      // let items = [];
+      // pagesWithIframes.map(item => {
+      //   item.iframes.map(iframe => {
+      //     items.push({
+      //       pageUrl: item.pageUrl,
+      //       iframe: iframe
+      //     });
+      //   });
+      // });
+      fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(pagesWithIframes), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithIframes.json`)} is saved.`);
@@ -143,23 +144,23 @@ const setup = () => {
     }
 
     if (configuration.checkImageExist) {
-      let items = [];
-      pagesWithImages.map(item => {
-        item.images.map(image => {
-          let { src, naturalWidth, naturalHeight, width, height, oversize, overcompressed} = image;
-          items.push({
-            pageUrl: item.pageUrl,
-            src,
-            naturalWidth,
-            naturalHeight,
-            width,
-            height,
-            oversize,
-            overcompressed
-          });
-        });
-      });
-      fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(items), (err, data) => {
+      // let items = [];
+      // pagesWithImages.map(item => {
+      //   item.images.map(image => {
+      //     let { src, naturalWidth, naturalHeight, width, height, oversize, overcompressed} = image;
+      //     items.push({
+      //       pageUrl: item.pageUrl,
+      //       src,
+      //       naturalWidth,
+      //       naturalHeight,
+      //       width,
+      //       height,
+      //       oversize,
+      //       overcompressed
+      //     });
+      //   });
+      // });
+      fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(pagesWithImages), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithImages.json`)} is saved.`);
@@ -184,16 +185,16 @@ const setup = () => {
     }
 
     if (configuration.checkVideoExist) {
-      let items = [];
-      pagesWithVideos.map(item => {
-        item.videos.map(video => {
-          items.push({
-            pageUrl: item.pageUrl,
-            video: video
-          });
-        });
-      });
-      fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(items), (err, data) => {
+      // let items = [];
+      // pagesWithVideos.map(item => {
+      //   item.videos.map(video => {
+      //     items.push({
+      //       pageUrl: item.pageUrl,
+      //       video: video
+      //     });
+      //   });
+      // });
+      fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(pagesWithVideos), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
@@ -460,24 +461,37 @@ const crawlAllURLs = async (url, browser) => {
 
   if (configuration.checkIframeExist) {
     console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
-    await getPagesWithIframes(page, url);
-    console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
-  }
-
-  if (configuration.checkImageExist) {
-    console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
-    await getPagesWithImages(page, url);
-    console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
-  }
-
-  if (configuration.checkVideoExist) {
-    console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-    await getPagesWithVideos(page, url).catch(err => {
+    let iframes = await elementsFinder.findIframes(page, url).catch(err => {
       errorLogs.push({
         url: url,
         error: err
       });
     });
+    pagesWithIframes = pagesWithIframes.concat(iframes);
+    console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+  }
+
+  if (configuration.checkImageExist) {
+    console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+    let images = await elementsFinder.findImages(page, url).catch(err => {
+      errorLogs.push({
+        url: url,
+        error: err
+      });
+    });
+    pagesWithImages = pagesWithImages.concat(images);
+    console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+  }
+
+  if (configuration.checkVideoExist) {
+    console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+    let videos = await elementsFinder.findVideos(page, url).catch(err => {
+      errorLogs.push({
+        url: url,
+        error: err
+      });
+    });
+    pagesWithVideos = pagesWithVideos.concat(videos);
     console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
   }
 
@@ -612,79 +626,79 @@ const getPagesWithExternalImages = async (page, url, domain) => {
   }
 }
 
-const getPagesWithExternalVideos = async (page, url, domain) => {
-  let $videos = await page.$$('video');
+// const getPagesWithExternalVideos = async (page, url, domain) => {
+//   let $videos = await page.$$('video');
 
-  if ($videos.length > 0) {
-    let temp = [];
+//   if ($videos.length > 0) {
+//     let temp = [];
 
-    const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
-    for (let i = 0; i < videos.length; i++) {
-    if (!isInternalURL(videos[i], domain)) {
-        temp.push(videos[i]);
-      }
-    }
+//     const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
+//     for (let i = 0; i < videos.length; i++) {
+//     if (!isInternalURL(videos[i], domain)) {
+//         temp.push(videos[i]);
+//       }
+//     }
 
-    if (temp.length > 0) {
-      let obj = {
-        url: url,
-        videos: temp
-      }
+//     if (temp.length > 0) {
+//       let obj = {
+//         url: url,
+//         videos: temp
+//       }
 
-      pagesWithExternalVideos.push(obj);
-    }
-  }
-}
+//       pagesWithExternalVideos.push(obj);
+//     }
+//   }
+// }
 
-const getPagesWithVideos = async (page, url) => {
-  let $videos = await page.$$('video');
-  let pageUrl = url;
+// const getPagesWithVideos = async (page, url) => {
+//   let $videos = await page.$$('video');
+//   let pageUrl = url;
 
-  if ($videos.length > 0) {
+//   if ($videos.length > 0) {
 
-    const videos = await page.$$eval('video', vids => vids.map(vid => vid.querySelector('source').src));
+//     const videos = await page.$$eval('video', vids => vids.map(vid => vid.querySelector('source').src));
 
-    if (videos.length) {
-      const obj = {
-        pageUrl: url,
-        videos: videos
-      };
+//     if (videos.length) {
+//       const obj = {
+//         pageUrl: url,
+//         videos: videos
+//       };
 
-      pagesWithVideos.push(obj);
-    }
-  }
-}
+//       pagesWithVideos.push(obj);
+//     }
+//   }
+// }
 
-const getPagesWithImages = async (page, url) => {
-  let $images = await page.$$('img');
+// const getPagesWithImages = async (page, url) => {
+//   let $images = await page.$$('img');
 
-  if($images.length > 0) {
+//   if($images.length > 0) {
 
-    const images = await page.$$eval('img', imgs => {
-      return imgs.map(img => {
-        return {
-          src: img.src,
-          naturalWidth: img.naturalWidth,
-          naturalHeight: img.naturalHeight,
-          width: img.width,
-          height: img.height,
-          oversize: ((img.naturalWidth * img.naturalHeight) > (img.width * img.height) * 1.1),
-          overcompressed: ((img.naturalWidth * img.naturalHeight) < (img.width * img.height) * 0.9)
-        }
-      });
-    });
+//     const images = await page.$$eval('img', imgs => {
+//       return imgs.map(img => {
+//         return {
+//           src: img.src,
+//           naturalWidth: img.naturalWidth,
+//           naturalHeight: img.naturalHeight,
+//           width: img.width,
+//           height: img.height,
+//           oversize: ((img.naturalWidth * img.naturalHeight) > (img.width * img.height) * 1.1),
+//           overcompressed: ((img.naturalWidth * img.naturalHeight) < (img.width * img.height) * 0.9)
+//         }
+//       });
+//     });
 
-    if (images.length) {
-      const obj = {
-        pageUrl: url,
-        images: images
-      };
+//     if (images.length) {
+//       const obj = {
+//         pageUrl: url,
+//         images: images
+//       };
 
-      pagesWithImages.push(obj);
-    }
+//       pagesWithImages.push(obj);
+//     }
 
-  }
-}
+//   }
+// }
 
 const getPagesWithIframes = async (page, url) => {
   let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
