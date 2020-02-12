@@ -16,6 +16,7 @@ const htmlValidator = require('./htmlValidate');
 const getExternalSources = require('./getExternalSources');
 const takeScreenshot = require('./takeScreenshot');
 const elementsFinder = require('./elementsFinder');
+const infoRetriever = require('./infoRetriever');
 
 const configuration = require('./config.js');
 
@@ -493,9 +494,11 @@ const crawlAllURLs = async (url, browser) => {
   }
 
   if (configuration.savePageInfo) {
-    console.log(`${chalk.bgMagenta('Collecting page information of:')} ${url}`)
-    await getPageInformation(page, url);
-    console.log(`${chalk.bgMagenta('Page information is collected for:')} ${url}`);
+    console.log(`${chalk.cyan('Collecting page information of:')} ${chalk.blue.underline(`${url}`)}`);
+    crawledPages.push(await infoRetriever(page, url, {
+      lastUpdatedTextSelector: configuration.lastUpdatedTextSelector
+    }));
+    console.log(`${chalk.green('Page information is collected for:')} ${chalk.blue.underline(`${url}`)}`);
   }
 
   if (configuration.detectExternalResource) {
@@ -549,15 +552,15 @@ const isTested = (url) => {
   return (testedURLs.indexOf(url) > -1);
 };
 
-const getLastUpdatedDate = async (page, selector) => {
-  const lastUpdatedText = await page.$eval(selector, node => node.innerHTML)
-    .catch(err => {
-      console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-      return null;
-    });
+// const getLastUpdatedDate = async (page, selector) => {
+//   const lastUpdatedText = await page.$eval(selector, node => node.innerHTML)
+//     .catch(err => {
+//       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
+//       return null;
+//     });
 
-  return lastUpdatedText;
-};
+//   return lastUpdatedText;
+// };
 
 const saveHTML = async (page, url) => {
   const pageContent = await page.content();
@@ -574,175 +577,3 @@ const saveHTML = async (page, url) => {
 
   return pageContent;
 };
-
-const getPagesWithExternalIframes = async (page, url, domain) => {
-  let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
-
-  if ($iframes.length > 0) {
-    let temp = [];
-
-    const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
-    for (let i = 0; i < iframes.length; i++) {
-      if (!isInternalURL(iframes[i], domain)) {
-        temp.push(iframes[i]);
-      }
-    }
-
-    if (temp.length > 0) {
-      let obj = {
-        url: url,
-        iframes: temp
-      };
-
-      pagesWithExternalIframes.push(obj);
-    }
-  }
-}
-
-const getPagesWithExternalImages = async (page, url, domain) => {
-  let $images = await page.$$('img');
-
-  if($images.length > 0) {
-    let temp = [];
-
-    const images = await page.$$eval('img', imgs => imgs.map(img => img.src));
-    for (let i = 0; i < images.length; i++) {
-      if (!isInternalURL(images[i], domain)) {
-        temp.push(images[i]);
-      }
-    }
-
-    if (temp.length > 0) {
-      let obj = {
-        url: url,
-        images: temp
-      }
-
-      pagesWithExternalImages.push(obj);
-    }
-  }
-}
-
-// const getPagesWithExternalVideos = async (page, url, domain) => {
-//   let $videos = await page.$$('video');
-
-//   if ($videos.length > 0) {
-//     let temp = [];
-
-//     const videos = await page.$$eval('video', vids => vids.map(vid => vid.src));
-//     for (let i = 0; i < videos.length; i++) {
-//     if (!isInternalURL(videos[i], domain)) {
-//         temp.push(videos[i]);
-//       }
-//     }
-
-//     if (temp.length > 0) {
-//       let obj = {
-//         url: url,
-//         videos: temp
-//       }
-
-//       pagesWithExternalVideos.push(obj);
-//     }
-//   }
-// }
-
-// const getPagesWithVideos = async (page, url) => {
-//   let $videos = await page.$$('video');
-//   let pageUrl = url;
-
-//   if ($videos.length > 0) {
-
-//     const videos = await page.$$eval('video', vids => vids.map(vid => vid.querySelector('source').src));
-
-//     if (videos.length) {
-//       const obj = {
-//         pageUrl: url,
-//         videos: videos
-//       };
-
-//       pagesWithVideos.push(obj);
-//     }
-//   }
-// }
-
-// const getPagesWithImages = async (page, url) => {
-//   let $images = await page.$$('img');
-
-//   if($images.length > 0) {
-
-//     const images = await page.$$eval('img', imgs => {
-//       return imgs.map(img => {
-//         return {
-//           src: img.src,
-//           naturalWidth: img.naturalWidth,
-//           naturalHeight: img.naturalHeight,
-//           width: img.width,
-//           height: img.height,
-//           oversize: ((img.naturalWidth * img.naturalHeight) > (img.width * img.height) * 1.1),
-//           overcompressed: ((img.naturalWidth * img.naturalHeight) < (img.width * img.height) * 0.9)
-//         }
-//       });
-//     });
-
-//     if (images.length) {
-//       const obj = {
-//         pageUrl: url,
-//         images: images
-//       };
-
-//       pagesWithImages.push(obj);
-//     }
-
-//   }
-// }
-
-const getPagesWithIframes = async (page, url) => {
-  let $iframes = await page.$$('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])');
-  let pageUrl = url;
-
-  if ($iframes.length > 0) {
-    const iframes = await page.$$eval('iframe:not([sandbox]):not([id="stSegmentFrame"]):not([id="stLframe"])', fs => fs.map(f => f.src));
-
-    if (iframes.length) {
-      const obj = {
-        pageUrl: url,
-        iframes: iframes
-      }
-
-      pagesWithIframes.push(obj);
-    }
-  }
-}
-
-const getPageInformation = async (page, url) => {
-  const title = await page.title().catch(err => {
-    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-    errorLogs.push({
-      url: url,
-      error: err
-    });
-  });
-
-  const description = await page.$eval('meta[name="description"]', node => node.attributes.content.value)
-  .catch(err => {
-    console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-    errorLogs.push({
-      url: url,
-      error: err
-    });
-    return null;
-  });
-
-
-  const lastUpdatedText = await getLastUpdatedDate(page, configuration.lastUpdatedTextSelector);
-
-  let obj = {
-    url: url,
-    title: title,
-    description: description,
-    lastUpdatedText: lastUpdatedText
-  }
-
-  crawledPages.push(obj);
-}
