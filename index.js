@@ -6,7 +6,7 @@ const chalk = require('chalk');
   - bgMagenta: custom plugin
  */
 const util = require('util');
-const {createFolder, isCrawled, getDomainName, isInternalURL, isFileLink, isValidURL, getAllLinks, takeScreenshot} = require('./cosmicUtils.js');
+const {createFolder, isCrawled, getDomainName, isInternalURL, isFileLink, isValidURL, getAllLinks} = require('./cosmicUtils.js');
 const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
@@ -14,6 +14,7 @@ const queue = require('queue');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
 const getExternalSources = require('./getExternalSources');
+const takeScreenshot = require('./takeScreenshot');
 
 const configuration = require('./config.js');
 

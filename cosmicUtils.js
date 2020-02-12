@@ -90,34 +90,34 @@ const getAllLinks = async (config) => {
   return links;
 }
 
-/* Take screenshot of the page in mobile and desktop version  */
-const takeScreenshot = async (args) => {
-  let { page, mobileDimension, desktopDimension, outputPath, outputFileName} = args;
+// /* Take screenshot of the page in mobile and desktop version  */
+// const takeScreenshot = async (args) => {
+//   let { page, mobileDimension, desktopDimension, outputPath, outputFileName} = args;
 
-  /* Screenshot for mobile */
-  page.setViewport({
-    width: mobileDimension.width,
-    height: mobileDimension.height
-  });
-  await page.screenshot({
-    path: `${outputPath}/screenshots/mobile/${outputFileName}`,
-    fullPage: true
-  });
+//   /* Screenshot for mobile */
+//   page.setViewport({
+//     width: mobileDimension.width,
+//     height: mobileDimension.height
+//   });
+//   await page.screenshot({
+//     path: `${outputPath}/screenshots/mobile/${outputFileName}`,
+//     fullPage: true
+//   });
 
-  console.log('Mobile screenshot is saved.');
+//   console.log('Mobile screenshot is saved.');
 
-  /* Screenshot for desktop */
-  page.setViewport({
-    width: desktopDimension.width,
-    height: desktopDimension.height
-  });
-  await page.screenshot({
-    path: `${outputPath}/screenshots/desktop/${outputFileName}`,
-    fullPage: true
-  });
+//   /* Screenshot for desktop */
+//   page.setViewport({
+//     width: desktopDimension.width,
+//     height: desktopDimension.height
+//   });
+//   await page.screenshot({
+//     path: `${outputPath}/screenshots/desktop/${outputFileName}`,
+//     fullPage: true
+//   });
 
-  console.log('Desktop screenshot is saved.');
-}
+//   console.log('Desktop screenshot is saved.');
+// }
 
 /* Check if the url is external URL */
 const isExternalSource = (url, domain) => {
@@ -132,6 +132,5 @@ module.exports = {
   isInternalURL,
   isFileLink,
   isValidURL,
-  getAllLinks,
-  takeScreenshot
+  getAllLinks
 };
