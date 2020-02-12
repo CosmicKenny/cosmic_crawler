@@ -17,6 +17,7 @@ const getExternalSources = require('./getExternalSources');
 const takeScreenshot = require('./takeScreenshot');
 const elementsFinder = require('./elementsFinder');
 const infoRetriever = require('./infoRetriever');
+const saveFile = require('./saveFile');
 
 const configuration = require('./config.js');
 
@@ -106,147 +107,43 @@ const setup = () => {
     console.log(chalk.green('Generating report...'));
 
     if (configuration.urlsSource === null) {
-      fs.writeFile(`${resultsFolder}/crawledURLs.json`, JSON.stringify(crawledURLs), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledURLs.json`)} is saved.`);
-      });
+      saveFile.saveJson('crawledURLs', crawledURLs, resultsFolder);
     }
 
     if (configuration.savePageInfo) {
-      fs.writeFile(`${resultsFolder}/crawledPages.json`, JSON.stringify(crawledPages), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/crawledPages.json`)} is saved.`);
-      });
+      saveFile.saveJson('crawledPages', crawledPages, resultsFolder);
     }
 
-    fs.writeFile(`${resultsFolder}/invalidURLs.json`, JSON.stringify(invalidURLs), (err, data) => {
-      if (err) console.log(err);
-
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/invalidURLs.json`)} is saved.`);
-    });
+    saveFile.saveJson('invalidURLs', invalidURLs, resultsFolder);
 
     if (configuration.checkIframeExist) {
-      // let items = [];
-      // pagesWithIframes.map(item => {
-      //   item.iframes.map(iframe => {
-      //     items.push({
-      //       pageUrl: item.pageUrl,
-      //       iframe: iframe
-      //     });
-      //   });
-      // });
-      fs.writeFile(`${resultsFolder}/pagesWithIframes.json`, JSON.stringify(pagesWithIframes), (err, data) => {
-        if (err) console.log(err);
+      saveFile.saveJson('pagesWithIframes', pagesWithIframes, resultsFolder);
 
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithIframes.json`)} is saved.`);
-      });
     }
 
     if (configuration.checkImageExist) {
-      // let items = [];
-      // pagesWithImages.map(item => {
-      //   item.images.map(image => {
-      //     let { src, naturalWidth, naturalHeight, width, height, oversize, overcompressed} = image;
-      //     items.push({
-      //       pageUrl: item.pageUrl,
-      //       src,
-      //       naturalWidth,
-      //       naturalHeight,
-      //       width,
-      //       height,
-      //       oversize,
-      //       overcompressed
-      //     });
-      //   });
-      // });
-      fs.writeFile(`${resultsFolder}/pagesWithImages.json`, JSON.stringify(pagesWithImages), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithImages.json`)} is saved.`);
-      });
+      saveFile.saveJson('pagesWithImages', pagesWithImages, resultsFolder);
     }
 
     if (configuration.detectFileLink) {
-      // let items = [];
-      // pagesWithFiles.map(item => {
-      //   item.files.map(file => {
-      //     items.push({
-      //       pageUrl: item.pageUrl,
-      //       files: file
-      //     });
-      //   });
-      // });
-      fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(pagesWithFiles), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithFiles.json`)} is saved.`);
-      });
+      saveFile.saveJson('pagesWithFiles', pagesWithFiles, resultsFolder);
     }
 
     if (configuration.checkVideoExist) {
-      // let items = [];
-      // pagesWithVideos.map(item => {
-      //   item.videos.map(video => {
-      //     items.push({
-      //       pageUrl: item.pageUrl,
-      //       video: video
-      //     });
-      //   });
-      // });
-      fs.writeFile(`${resultsFolder}/pagesWithVideos.json`, JSON.stringify(pagesWithVideos), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithVideos.json`)} is saved.`);
-      });
+      saveFile.saveJson('pagesWithVideos', pagesWithVideos, resultsFolder);
     }
 
     if (configuration.detectExternalResource) {
-      fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
-      });
-
-      fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
-      });
-
-      fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
-      });
-
-      fs.writeFile(`${resultsFolder}/externalDomains.json`, JSON.stringify(externalDomains), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/externalDomains.json`)} is saved.`);
-      });
+      saveFile.saveJson('pagesWithExternalIframes', pagesWithExternalIframes, resultsFolder);
+      saveFile.saveJson('pagesWithExternalImages', pagesWithExternalImages, resultsFolder);
+      saveFile.saveJson('pagesWithExternalVideos', pagesWithExternalVideos, resultsFolder);
+      saveFile.saveJson('externalDomains', externalDomains, resultsFolder);
     }
 
     if (configuration.checkBrokenLink) {
-      fs.writeFile(`${resultsFolder}/brokenLinks.json`, JSON.stringify(brokenURLs), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/brokenLinks.json`)} is saved.`);
-      });
-
-      fs.writeFile(`${resultsFolder}/testedPages.json`, JSON.stringify(testedPages), (err, data) => {
-        if (err) console.log(err);
-
-        console.log(`${chalk.underline.blueBright(`${resultsFolder}/testedPages.json`)} is saved.`);
-      });
+      saveFile.saveJson('brokenLinks', brokenURLs, resultsFolder);
+      saveFile.saveJson('testedPages', testedPages, resultsFolder);
     }
-
-    fs.writeFile(`${resultsFolder}/errorLogs.json`, JSON.stringify(errorLogs), (err, data) => {
-      if (err) console.log(err);
-
-      console.log(`${chalk.underline.blueBright(`${resultsFolder}/errorLogs.json`)} is saved.`);
-    });
 
     await browser.close();
     console.log(chalk.green('Browser closed'));
@@ -506,15 +403,6 @@ const crawlAllURLs = async (url, browser) => {
     pagesWithExternalIframes = pagesWithExternalIframes.concat(externalIframes);
     pagesWithExternalImages = pagesWithExternalImages.concat(externalImages);
     pagesWithExternalVideos = pagesWithExternalVideos.concat(externalVideos);
-    // console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
-    // await getPagesWithExternalIframes(page, url, domainName);
-    // console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
-    // console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
-    // await getPagesWithExternalImages(page, url, domainName);
-    // console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
-    // console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-    // await getPagesWithExternalVideos(page, url, domainName);
-    // console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
   }
 
   if (configuration.scanWCAG) {
@@ -551,16 +439,6 @@ const _getPathName = (url, basePath) => {
 const isTested = (url) => {
   return (testedURLs.indexOf(url) > -1);
 };
-
-// const getLastUpdatedDate = async (page, selector) => {
-//   const lastUpdatedText = await page.$eval(selector, node => node.innerHTML)
-//     .catch(err => {
-//       console.log(`${chalk.bgRed('ERROR:')} ${err}`);
-//       return null;
-//     });
-
-//   return lastUpdatedText;
-// };
 
 const saveHTML = async (page, url) => {
   const pageContent = await page.content();
