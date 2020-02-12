@@ -29,4 +29,4 @@ const test = async (url, storage, reportName) => {
   return scanResult;
 };
 
-module.exports.wcagTester = test;
+module.exports = test;

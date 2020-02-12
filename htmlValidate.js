@@ -168,4 +168,4 @@ const htmlReport = (url, errorMessagesHtml) => {
   return html;
 };
 
-module.exports.htmlValidate = validate;
+module.exports = validate;
