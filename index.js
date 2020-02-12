@@ -13,6 +13,7 @@ const fs = require('fs');
 const queue = require('queue');
 const wcagTester = require('./wcagTester.js');
 const htmlValidator = require('./htmlValidate');
+const getExternalSources = require('./getExternalSources');
 
 const configuration = require('./config.js');
 
@@ -199,46 +200,19 @@ const setup = () => {
     }
 
     if (configuration.detectExternalResource) {
-      let iframes = [];
-      let images = [];
-      let videos = [];
-      pagesWithExternalIframes.map(item => {
-        item.iframes.map(iframe => {
-          iframes.push({
-            pageUrl: item.url,
-            iframe: iframe
-          });
-        });
-      });
-      pagesWithExternalImages.map(item => {
-        item.images.map(image => {
-          images.push({
-            pageUrl: item.url,
-            image: image
-          });
-        });
-      });
-      pagesWithExternalVideos.map(item => {
-        item.videos.map(video => {
-          videos.push({
-            pageUrl: item.url,
-            video: video
-          });
-        });
-      });
-      fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(iframes), (err, data) => {
+      fs.writeFile(`${resultsFolder}/pagesWithExternalIframes.json`, JSON.stringify(pagesWithExternalIframes), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalIframes.json`)} is saved.`);
       });
 
-      fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(images), (err, data) => {
+      fs.writeFile(`${resultsFolder}/pagesWithExternalImages.json`, JSON.stringify(pagesWithExternalImages), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalImages.json`)} is saved.`);
       });
 
-      fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(videos), (err, data) => {
+      fs.writeFile(`${resultsFolder}/pagesWithExternalVideos.json`, JSON.stringify(pagesWithExternalVideos), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithExternalVideos.json`)} is saved.`);
@@ -513,15 +487,19 @@ const crawlAllURLs = async (url, browser) => {
   }
 
   if (configuration.detectExternalResource) {
-    console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
-    await getPagesWithExternalIframes(page, url, domainName);
-    console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
-    console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
-    await getPagesWithExternalImages(page, url, domainName);
-    console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
-    console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
-    await getPagesWithExternalVideos(page, url, domainName);
-    console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
+    let { externalIframes, externalImages, externalVideos } = await getExternalSources(page, url, domainName);
+    pagesWithExternalIframes = pagesWithExternalIframes.concat(externalIframes);
+    pagesWithExternalImages = pagesWithExternalImages.concat(externalImages);
+    pagesWithExternalVideos = pagesWithExternalVideos.concat(externalVideos);
+    // console.log(`${chalk.bgMagenta('Finding iframes in:')} ${url}`)
+    // await getPagesWithExternalIframes(page, url, domainName);
+    // console.log(`${chalk.bgMagenta('All iframes found in:')} ${url}`);
+    // console.log(`${chalk.bgMagenta('Finding images in:')} ${url}`)
+    // await getPagesWithExternalImages(page, url, domainName);
+    // console.log(`${chalk.bgMagenta('All images found in:')} ${url}`);
+    // console.log(`${chalk.bgMagenta('Finding videos in:')} ${url}`)
+    // await getPagesWithExternalVideos(page, url, domainName);
+    // console.log(`${chalk.bgMagenta('All videos found in:')} ${url}`);
   }
 
   if (configuration.scanWCAG) {
