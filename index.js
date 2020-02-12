@@ -17,7 +17,7 @@ const getExternalSources = require('./getExternalSources');
 const takeScreenshot = require('./takeScreenshot');
 const elementsFinder = require('./elementsFinder');
 const infoRetriever = require('./infoRetriever');
-const saveFile = require('./saveFile');
+const fileKeeper = require('./fileKeeper');
 
 const configuration = require('./config.js');
 
@@ -107,42 +107,42 @@ const setup = () => {
     console.log(chalk.green('Generating report...'));
 
     if (configuration.urlsSource === null) {
-      saveFile.saveJson('crawledURLs', crawledURLs, resultsFolder);
+      fileKeeper.saveJson('crawledURLs', crawledURLs, resultsFolder);
     }
 
     if (configuration.savePageInfo) {
-      saveFile.saveJson('crawledPages', crawledPages, resultsFolder);
+      fileKeeper.saveJson('crawledPages', crawledPages, resultsFolder);
     }
 
-    saveFile.saveJson('invalidURLs', invalidURLs, resultsFolder);
+    fileKeeper.saveJson('invalidURLs', invalidURLs, resultsFolder);
 
     if (configuration.checkIframeExist) {
-      saveFile.saveJson('pagesWithIframes', pagesWithIframes, resultsFolder);
+      fileKeeper.saveJson('pagesWithIframes', pagesWithIframes, resultsFolder);
 
     }
 
     if (configuration.checkImageExist) {
-      saveFile.saveJson('pagesWithImages', pagesWithImages, resultsFolder);
+      fileKeeper.saveJson('pagesWithImages', pagesWithImages, resultsFolder);
     }
 
     if (configuration.detectFileLink) {
-      saveFile.saveJson('pagesWithFiles', pagesWithFiles, resultsFolder);
+      fileKeeper.saveJson('pagesWithFiles', pagesWithFiles, resultsFolder);
     }
 
     if (configuration.checkVideoExist) {
-      saveFile.saveJson('pagesWithVideos', pagesWithVideos, resultsFolder);
+      fileKeeper.saveJson('pagesWithVideos', pagesWithVideos, resultsFolder);
     }
 
     if (configuration.detectExternalResource) {
-      saveFile.saveJson('pagesWithExternalIframes', pagesWithExternalIframes, resultsFolder);
-      saveFile.saveJson('pagesWithExternalImages', pagesWithExternalImages, resultsFolder);
-      saveFile.saveJson('pagesWithExternalVideos', pagesWithExternalVideos, resultsFolder);
-      saveFile.saveJson('externalDomains', externalDomains, resultsFolder);
+      fileKeeper.saveJson('pagesWithExternalIframes', pagesWithExternalIframes, resultsFolder);
+      fileKeeper.saveJson('pagesWithExternalImages', pagesWithExternalImages, resultsFolder);
+      fileKeeper.saveJson('pagesWithExternalVideos', pagesWithExternalVideos, resultsFolder);
+      fileKeeper.saveJson('externalDomains', externalDomains, resultsFolder);
     }
 
     if (configuration.checkBrokenLink) {
-      saveFile.saveJson('brokenLinks', brokenURLs, resultsFolder);
-      saveFile.saveJson('testedPages', testedPages, resultsFolder);
+      fileKeeper.saveJson('brokenLinks', brokenURLs, resultsFolder);
+      fileKeeper.saveJson('testedPages', testedPages, resultsFolder);
     }
 
     await browser.close();
