@@ -44,7 +44,7 @@ let q = new queue({
   concurrency: 5
 });
 
-const resultsFolder = configuration.outputFolderName;
+const outputPath = configuration.outputFolderName;
 
 const entryUrl = configuration.entryUrl;
 const domainName = getDomainName(entryUrl);
@@ -53,20 +53,20 @@ const disableCrawl = configuration.disableCrawl;
 
 /* setup crawler */
 const setup = () => {
-  createFolder(resultsFolder);
+  createFolder(outputPath);
 
   if (configuration.scanWCAG) {
-    createFolder(`${resultsFolder}/wcag`);
+    createFolder(`${outputPath}/wcag`);
   }
 
   if (configuration.validateHTML) {
-    createFolder(`${resultsFolder}/html-validate`);
+    createFolder(`${outputPath}/html-validate`);
   }
 
   if (configuration.takeScreenshot) {
-    createFolder(`${resultsFolder}/screenshots`);
-    createFolder(`${resultsFolder}/screenshots/mobile`);
-    createFolder(`${resultsFolder}/screenshots/desktop`);
+    createFolder(`${outputPath}/screenshots`);
+    createFolder(`${outputPath}/screenshots/mobile`);
+    createFolder(`${outputPath}/screenshots/desktop`);
   }
 }
 
@@ -107,42 +107,42 @@ const setup = () => {
     console.log(chalk.green('Generating report...'));
 
     if (configuration.urlsSource === null) {
-      fileKeeper.saveJson('crawledURLs', crawledURLs, resultsFolder);
+      fileKeeper.saveJson('crawledURLs', crawledURLs, outputPath);
     }
 
     if (configuration.savePageInfo) {
-      fileKeeper.saveJson('crawledPages', crawledPages, resultsFolder);
+      fileKeeper.saveJson('crawledPages', crawledPages, outputPath);
     }
 
-    fileKeeper.saveJson('invalidURLs', invalidURLs, resultsFolder);
+    fileKeeper.saveJson('invalidURLs', invalidURLs, outputPath);
 
     if (configuration.checkIframeExist) {
-      fileKeeper.saveJson('pagesWithIframes', pagesWithIframes, resultsFolder);
+      fileKeeper.saveJson('pagesWithIframes', pagesWithIframes, outputPath);
 
     }
 
     if (configuration.checkImageExist) {
-      fileKeeper.saveJson('pagesWithImages', pagesWithImages, resultsFolder);
+      fileKeeper.saveJson('pagesWithImages', pagesWithImages, outputPath);
     }
 
     if (configuration.detectFileLink) {
-      fileKeeper.saveJson('pagesWithFiles', pagesWithFiles, resultsFolder);
+      fileKeeper.saveJson('pagesWithFiles', pagesWithFiles, outputPath);
     }
 
     if (configuration.checkVideoExist) {
-      fileKeeper.saveJson('pagesWithVideos', pagesWithVideos, resultsFolder);
+      fileKeeper.saveJson('pagesWithVideos', pagesWithVideos, outputPath);
     }
 
     if (configuration.detectExternalResource) {
-      fileKeeper.saveJson('pagesWithExternalIframes', pagesWithExternalIframes, resultsFolder);
-      fileKeeper.saveJson('pagesWithExternalImages', pagesWithExternalImages, resultsFolder);
-      fileKeeper.saveJson('pagesWithExternalVideos', pagesWithExternalVideos, resultsFolder);
-      fileKeeper.saveJson('externalDomains', externalDomains, resultsFolder);
+      fileKeeper.saveJson('pagesWithExternalIframes', pagesWithExternalIframes, outputPath);
+      fileKeeper.saveJson('pagesWithExternalImages', pagesWithExternalImages, outputPath);
+      fileKeeper.saveJson('pagesWithExternalVideos', pagesWithExternalVideos, outputPath);
+      fileKeeper.saveJson('externalDomains', externalDomains, outputPath);
     }
 
     if (configuration.checkBrokenLink) {
-      fileKeeper.saveJson('brokenLinks', brokenURLs, resultsFolder);
-      fileKeeper.saveJson('testedPages', testedPages, resultsFolder);
+      fileKeeper.saveJson('brokenLinks', brokenURLs, outputPath);
+      fileKeeper.saveJson('testedPages', testedPages, outputPath);
     }
 
     await browser.close();
@@ -345,7 +345,7 @@ const crawlAllURLs = async (url, browser) => {
         width: configuration.viewportSize.desktop.width,
         height: configuration.viewportSize.desktop.height
       },
-      outputPath: resultsFolder,
+      outputPath: outputPath,
       outputFileName: `${index + 1}.jpg`,
     });
   }
@@ -407,7 +407,7 @@ const crawlAllURLs = async (url, browser) => {
 
   if (configuration.scanWCAG) {
     console.log(`${chalk.bgMagenta('Scanning WCAG for:')} ${url}`);
-    await wcagTester(url, `${resultsFolder}/wcag`, `${index + 1}`)
+    await wcagTester(url, `${outputPath}/wcag`, `${index + 1}`)
       .catch(err => {
         console.log(`${chalk.bgRed('ERROR:')} ${err}`);
         errorLogs.push({
@@ -422,7 +422,7 @@ const crawlAllURLs = async (url, browser) => {
     console.log(`${chalk.bgMagenta('Getting HTML of the page:')} ${url}...`);
     let HTML = await page.content();
     console.log(`${chalk.bgMagenta('Validating HTML for:')} ${url}`);
-    await htmlValidator(url, HTML, `${resultsFolder}/html-validate`, `${index + 1}`);
+    await htmlValidator(url, HTML, `${outputPath}/html-validate`, `${index + 1}`);
     console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
   }
 
@@ -447,7 +447,7 @@ const saveHTML = async (page, url) => {
   const filePath = _getPathName(url, domainName);
   console.log('filepath', filePath);
 
-  fs.writeFile(path.join(`${resultsFolder}`, 'html', filePath) + '-index.html', pageContent, (err, data) => {
+  fs.writeFile(path.join(`${outputPath}`, 'html', filePath) + '-index.html', pageContent, (err, data) => {
     if (err) console.log(err);
 
     console.log(`HTML saved as ${path.join('html', filePath)}-index.html`);
