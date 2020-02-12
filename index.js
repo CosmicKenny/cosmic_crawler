@@ -168,16 +168,16 @@ const setup = () => {
     }
 
     if (configuration.detectFileLink) {
-      let items = [];
-      pagesWithFiles.map(item => {
-        item.files.map(file => {
-          items.push({
-            pageUrl: item.pageUrl,
-            files: file
-          });
-        });
-      });
-      fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(items), (err, data) => {
+      // let items = [];
+      // pagesWithFiles.map(item => {
+      //   item.files.map(file => {
+      //     items.push({
+      //       pageUrl: item.pageUrl,
+      //       files: file
+      //     });
+      //   });
+      // });
+      fs.writeFile(`${resultsFolder}/pagesWithFiles.json`, JSON.stringify(pagesWithFiles), (err, data) => {
         if (err) console.log(err);
 
         console.log(`${chalk.underline.blueBright(`${resultsFolder}/pagesWithFiles.json`)} is saved.`);
@@ -255,13 +255,10 @@ const setup = () => {
 
 const crawlAllURLs = async (url, browser) => {
   let page = await browser.newPage();
+  let fileLinks = [];
 
   await page.setViewport(configuration.viewportSize.desktop);
 
-  let filesInfo = {
-    pageUrl: url,
-    files: []
-  };
 
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
 
@@ -315,8 +312,11 @@ const crawlAllURLs = async (url, browser) => {
     if (isFileLink(cleanUrl)) {
       console.log(`${chalk.yellow('Non HTML Link:')} ${cleanUrl}`);
       if (configuration.detectFileLink) {
-        console.log(links[i]);
-        filesInfo.files.push(cleanUrl);
+        fileLinks.push(cleanUrl);
+        pagesWithFiles.push({
+          pageUrl: url,
+          file: cleanUrl
+        });
       }
     }
 
@@ -453,10 +453,7 @@ const crawlAllURLs = async (url, browser) => {
   }
 
   if (configuration.detectFileLink) {
-    console.log(`${chalk.bgYellow('NO OF FILES::')} ${filesInfo.files.length}`);
-    if (filesInfo.files.length) {
-      pagesWithFiles.push(filesInfo);
-    }
+    console.log(`${chalk.cyan.bold('No of files:')} ${fileLinks.length}`);
   }
 
   if (configuration.checkIframeExist) {
