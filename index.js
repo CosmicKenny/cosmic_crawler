@@ -18,6 +18,7 @@ const takeScreenshot = require('./takeScreenshot');
 const elementsFinder = require('./elementsFinder');
 const infoRetriever = require('./infoRetriever');
 const fileKeeper = require('./fileKeeper');
+const htmlSaver = require('./htmlSaver');
 
 const configuration = require('./config.js');
 
@@ -96,9 +97,9 @@ const setup = () => {
     };
 
   } else {
-    /* Start crawling from the entry URL */
-    crawledURLs.push(entryUrl);
-    await crawlAllURLs(entryUrl, browser);
+      /* Start crawling from the entry URL */
+      crawledURLs.push(entryUrl);
+      await crawlAllURLs(entryUrl, browser);
   }
 
   q.start(async (err) => {
@@ -157,7 +158,6 @@ const crawlAllURLs = async (url, browser) => {
 
   await page.setViewport(configuration.viewportSize.desktop);
 
-
   console.log(`${chalk.magentaBright('New page created:')} loading ${url}...`);
 
   if (configuration.detectExternalResource) {
@@ -183,6 +183,85 @@ const crawlAllURLs = async (url, browser) => {
       error: JSON.stringify(err)
     });
   });
+
+  const pagination = await page.$('.pagination');
+  
+  // Check if have pagination & click throughout all pages
+  if(pagination) {
+    console.log('got pagination!');
+
+    const lastPageNumber = await findByLink(page, 'Last');
+
+    for (let pageIndex = 0; pageIndex < lastPageNumber; pageIndex++) {
+      console.log('Page:', pageIndex + 1);
+      await page.waitFor(5000);
+
+      await _funStuffs(url, page, browser);
+
+      if (pageIndex != lastPageNumber - 1) {
+        await Promise.all([
+          // Load the function
+          await page.addScriptTag({path: './findElement.js'}),
+      
+          // Find Element by Text and click it
+          await page.evaluate(() => {
+            return findElemByText({str: 'Next', selector: 'a', leaf: 'innerHTML'})[0].click();
+          }),
+          page.waitForNavigation(),
+          page.waitForSelector('div.pagination')
+        ]);
+      }
+    }
+    await page.close();
+    console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
+  } else {
+    console.log('no pagination!');
+    await _funStuffs(url, page, browser);
+    await page.close();
+    console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
+  }
+};
+
+// Normalizing the text
+const getText = (linkText) => {
+  linkText = linkText.replace(/\r\n|\r/g, "\n");
+  linkText = linkText.replace(/\ +/g, " ");
+
+  // Replace &nbsp; with a space 
+  var nbspPattern = new RegExp(String.fromCharCode(160), "g");
+  return linkText.replace(nbspPattern, " ");
+}
+
+const getParameterByName = (name, url) => {
+  if (!url) url = window.location.href;
+  name = name.replace(/[\[\]]/g, '\\$&');
+  var regex = new RegExp('[?&]' + name + '(=([^&#]*)|&|#|$)'),
+      results = regex.exec(url);
+  if (!results) return null;
+  if (!results[2]) return '';
+  return decodeURIComponent(results[2].replace(/\+/g, ' '));
+}
+
+// find the link, by going over all links on the page
+const findByLink = async (page, linkString) => {
+  const links = await page.$$('div.pagination > a');
+  for (var i=0; i < links.length; i++) {
+    let valueHandle = await links[i].getProperty('innerText');
+    let attr = await links[i].getProperty('href');
+    let attrText = await attr.jsonValue();
+    let linkText = await valueHandle.jsonValue();
+    const text = getText(linkText);
+    if (linkString == text) {
+      var pageNum = getParameterByName('page', attrText);
+      // console.log(linkString, pageNum, "Found");
+      // console.log(attr);
+      return pageNum;
+    }
+  }
+  return null;
+}
+
+const _funStuffs = async (url, page, browser) => {
   console.log(`${chalk.magentaBright('Holding on:')} ${url}`);
   await page.waitFor(configuration.pageWaitTime);
   console.log(`Continue after ${configuration.pageWaitTime / 1000}s on ${url}`);
@@ -190,18 +269,17 @@ const crawlAllURLs = async (url, browser) => {
 
   console.log(`${chalk.cyan('Parsing all links in:')} ${url}...`);
   const links = await getAllLinks({
-    page,
-    urlPattern
+      page,
+      urlPattern
   });
   console.log(`${chalk.cyan('Got all links in:')} ${url}`);
 
   console.log(`${chalk.cyan('Checking each link in:')} ${url}...`);
-
   for (let i = 0; i < links.length; i++) {
     if (configuration.debug) {
-      if (crawledURLs.length >= 15) {
-        break;
-      }
+        if (crawledURLs.length >= 15) {
+          break;
+        }
     }
 
     /* remove # from last character of {url} */
@@ -212,8 +290,8 @@ const crawlAllURLs = async (url, browser) => {
       if (configuration.detectFileLink) {
         fileLinks.push(cleanUrl);
         pagesWithFiles.push({
-          pageUrl: url,
-          file: cleanUrl
+            pageUrl: url,
+            file: cleanUrl
         });
       }
     }
@@ -246,7 +324,7 @@ const crawlAllURLs = async (url, browser) => {
         //   return (page.url == cleanUrl)
         // });
         // testPageObj.url = cleanUrl;
-      // } else {
+        // } else {
         console.log(`${chalk.cyan('Testing link response:')} ${cleanUrl}`)
         // let testPageObj = {
         //   pageUrl: url,
@@ -318,8 +396,8 @@ const crawlAllURLs = async (url, browser) => {
 
         /* queue crawling new URL*/
         q.push(async (cb) => {
-          await crawlAllURLs(cleanUrl, browser);
-          cb();
+            await crawlAllURLs(cleanUrl, browser);
+            cb();
         });
       }
     }
@@ -426,9 +504,8 @@ const crawlAllURLs = async (url, browser) => {
     console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
   }
 
-  await page.close();
-  console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
-};
+  await htmlSaver(url, 'mfa-test');
+}
 
 const _getPathName = (url, basePath) => {
   let newUrl = url.replace(basePath, "");
