@@ -18,6 +18,7 @@ const takeScreenshot = require('./takeScreenshot');
 const elementsFinder = require('./elementsFinder');
 const infoRetriever = require('./infoRetriever');
 const fileKeeper = require('./fileKeeper');
+const htmlSaver = require('./htmlSaver');
 
 const configuration = require('./config.js');
 
@@ -425,6 +426,9 @@ const crawlAllURLs = async (url, browser) => {
     await htmlValidator(url, HTML, `${outputPath}/html-validate`, `${index + 1}`);
     console.log(`${chalk.bgMagenta('Finish validating HTML for:')} ${url}`);
   }
+
+  // console.log(`${chalk.magentaBright('Starting Crawl')} ${url}`);
+  // await htmlSaver(url, 'snw');
 
   await page.close();
   console.log(`${chalk.magentaBright('Page closed:')} ${url}`);
