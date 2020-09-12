@@ -19,7 +19,7 @@
     "html-validator": "^4.0.2",
     "https": "^1.0.0",
     "json2csv": "^4.4.1",
-    "node-fetch": "^2.6.0",
+    "node-fetch": "^2.6.1",
     "pa11y": "^5.1.0",
     "pa11y-reporter-html": "^1.0.0",
     "puppeteer": "^1.14.0",
